@@ -1367,6 +1367,10 @@ function hideTakenCardsModal() {
 }
 
 function getPlayerName(player) {
+    // Use multiplayer names if in multiplayer mode
+    if (typeof isMultiplayer !== 'undefined' && isMultiplayer && typeof getMultiplayerPlayerName === 'function') {
+        return getMultiplayerPlayerName(player);
+    }
     const names = {
         bottom: 'You',
         left: 'Bot 1',

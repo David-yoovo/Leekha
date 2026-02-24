@@ -357,14 +357,17 @@ async function handleMultiplayerGameStart(state) {
     
     // Reset game state
     gameState.hands = { bottom: [], left: [], top: [], right: [] };
+    gameState.takenCards = { bottom: [], left: [], top: [], right: [] };
     gameState.scores = state.scores || { bottom: 0, left: 0, top: 0, right: 0 };
     gameState.roundScores = state.roundScores || { bottom: 0, left: 0, top: 0, right: 0 };
     gameState.passDirection = state.passDirection;
+    gameState.currentTrick = [];
     
     // Clear UI
     renderAllHands();
     clearTable();
     updateScores();
+    updateCurrentPlayerInfo();
     
     // Show dealing animation
     gameState.gamePhase = 'dealing';
@@ -660,6 +663,9 @@ function handleCardsExchanged(state) {
 }
 
 function handleCardPlayed(data) {
+    // Track the card in current trick
+    gameState.currentTrick.push({ player: data.position, card: data.card });
+    
     // Render card on table from any player
     renderCardOnTable(data.position, data.card);
     playSound('sound-card-play');
@@ -683,14 +689,29 @@ function handleTurnChanged(state) {
     renderPlayerHand('bottom');
 }
 
-function handleTrickComplete(data) {
+async function handleTrickComplete(data) {
     playSound('sound-trick-win');
     const winnerName = getMultiplayerPlayerName(data.winner);
     updateStatus(`${winnerName} wins the trick!`);
     
-    setTimeout(() => {
-        clearTable();
-    }, 1500);
+    // Store won cards for the winner
+    if (data.cards && data.cards.length > 0) {
+        gameState.takenCards[data.winner].push(...data.cards);
+    }
+    
+    // Update points
+    if (data.points !== undefined) {
+        gameState.roundScores[data.winner] += data.points;
+    }
+    
+    updateCurrentPlayerInfo();
+    
+    // Use same animation as solo mode
+    await animateTrickCollection(data.winner);
+    clearTable();
+    
+    // Clear currentTrick after animation
+    gameState.currentTrick = [];
 }
 
 function handleNewTrick(state) {
