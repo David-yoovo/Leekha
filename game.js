@@ -954,7 +954,15 @@ async function animateTrickCollection(winnerPlayer) {
     
     tableCards.forEach((tableCard, index) => {
         const rect = tableCard.getBoundingClientRect();
-        const cardData = gameState.currentTrick[index];
+        const playerPos = tableCard.dataset.player;
+        
+        // Find card data from current trick by matching player position
+        let cardData = gameState.currentTrick.find(t => t.player === playerPos);
+        
+        // Fallback to index-based lookup for backwards compatibility
+        if (!cardData && gameState.currentTrick[index]) {
+            cardData = gameState.currentTrick[index];
+        }
         
         if (cardData) {
             const fromPos = { 
@@ -969,6 +977,16 @@ async function animateTrickCollection(winnerPlayer) {
                         tableCard.remove();
                         animateCardSlide(cardData.card, fromPos, winnerPos, true, 500)
                             .then(resolve);
+                    }, index * 100);
+                })
+            );
+        } else {
+            // If no card data found, just remove the table card
+            promises.push(
+                new Promise(resolve => {
+                    setTimeout(() => {
+                        tableCard.remove();
+                        resolve();
                     }, index * 100);
                 })
             );

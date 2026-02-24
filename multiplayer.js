@@ -7,6 +7,7 @@ let isReady = false;
 let multiplayerNames = {}; // Store player names by position
 let hasPassed = false; // Track if we've confirmed our pass
 let pendingReceivedCards = []; // Cards received before we passed
+let isAnimatingTrick = false; // Prevent race between trick animation and newTrick
 
 // DOM Elements
 const startModal = document.getElementById('start-modal');
@@ -690,6 +691,7 @@ function handleTurnChanged(state) {
 }
 
 async function handleTrickComplete(data) {
+    isAnimatingTrick = true;
     playSound('sound-trick-win');
     const winnerName = getMultiplayerPlayerName(data.winner);
     updateStatus(`${winnerName} wins the trick!`);
@@ -712,9 +714,16 @@ async function handleTrickComplete(data) {
     
     // Clear currentTrick after animation
     gameState.currentTrick = [];
+    isAnimatingTrick = false;
 }
 
 function handleNewTrick(state) {
+    // Wait for trick animation to complete if still running
+    if (isAnimatingTrick) {
+        setTimeout(() => handleNewTrick(state), 100);
+        return;
+    }
+    
     // Update game state for new trick
     gameState.currentPlayer = state.currentPlayer;
     gameState.trickNumber = state.trickNumber;
@@ -722,7 +731,7 @@ function handleNewTrick(state) {
     gameState.currentTrick = [];
     gameState.gamePhase = 'playing';
     
-    clearTable();
+    // Table should already be cleared by handleTrickComplete animation
     
     const playerName = getMultiplayerPlayerName(state.currentPlayer);
     updateStatus(`Trick ${state.trickNumber}: ${playerName}'s turn`);

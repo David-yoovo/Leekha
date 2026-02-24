@@ -438,12 +438,14 @@ class GameManager {
 
         // Check if round is over
         if (game.hands[POSITIONS[0]].length === 0) {
-            setTimeout(() => this.endRound(roomId), 1000);
+            setTimeout(() => this.endRound(roomId), 2000);
         } else {
-            // Start next trick
-            game.trickNumber++;
-            game.currentPlayer = winner.position;
-            this.broadcastGameState(roomId, 'newTrick');
+            // Start next trick after delay for animation
+            setTimeout(() => {
+                game.trickNumber++;
+                game.currentPlayer = winner.position;
+                this.broadcastGameState(roomId, 'newTrick');
+            }, 1500);
         }
     }
 
