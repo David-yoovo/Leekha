@@ -160,10 +160,31 @@ function initGame() {
     gameState.roundNumber = 1;
     gameState.dealerIndex = 0;
     gameState.passDirection = 'right';
-    startRound();
+    gameState.hands = { bottom: [], left: [], top: [], right: [] };
+    
+    // Clear all hands display
+    renderAllHands();
+    updateScores();
+    updateStatus('Welcome to Leekha!');
+    
+    // Show start modal
+    showStartModal();
 }
 
-function startRound() {
+function showStartModal() {
+    document.getElementById('start-modal').classList.add('active');
+}
+
+function hideStartModal() {
+    document.getElementById('start-modal').classList.remove('active');
+}
+
+async function startGame() {
+    hideStartModal();
+    await startRound();
+}
+
+async function startRound() {
     // Reset round state
     gameState.roundScores = { bottom: 0, left: 0, top: 0, right: 0 };
     gameState.trickNumber = 0;
@@ -173,14 +194,24 @@ function startRound() {
     gameState.takenCards = { bottom: [], left: [], top: [], right: [] };
     gameState.selectedCardsToPass = [];
     gameState.receivedCards = [];
+    gameState.hands = { bottom: [], left: [], top: [], right: [] };
     
     // Create and shuffle deck
     gameState.deck = shuffleDeck(createDeck());
     
-    // Deal cards
-    for (let i = 0; i < 4; i++) {
-        const player = PLAYERS[i];
-        gameState.hands[player] = gameState.deck.slice(i * 13, (i + 1) * 13);
+    // Clear hands display
+    renderAllHands();
+    renderReceivedCards();
+    updateTakenCardsStack();
+    
+    // Deal cards with animation
+    gameState.gamePhase = 'dealing';
+    updateStatus(`Round ${gameState.roundNumber}: Dealing cards...`);
+    
+    await dealCardsWithAnimation();
+    
+    // Sort all hands after dealing
+    for (const player of PLAYERS) {
         sortHand(player);
     }
     
@@ -189,9 +220,43 @@ function startRound() {
     updateStatus(`Round ${gameState.roundNumber}: Select 3 cards to pass ${gameState.passDirection}`);
     
     renderAllHands();
-    renderReceivedCards();
-    updateTakenCardsStack();
     showPassModal();
+}
+
+// Deal cards one by one with animation
+async function dealCardsWithAnimation() {
+    const deckPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    const dealOrder = ['bottom', 'left', 'top', 'right'];
+    const startPlayerIdx = (gameState.dealerIndex + 1) % 4;
+    
+    let deckIndex = 0;
+    
+    // Deal 13 cards to each player, one at a time rotating between players
+    for (let cardNum = 0; cardNum < 13; cardNum++) {
+        for (let i = 0; i < 4; i++) {
+            const player = dealOrder[(startPlayerIdx + i) % 4];
+            const card = gameState.deck[deckIndex++];
+            
+            // Add card to hand
+            gameState.hands[player].push(card);
+            
+            // Animate card dealing
+            const targetPos = getPlayerPosition(player);
+            const showFace = player === 'bottom';
+            
+            // Create animation (don't await, let them overlap slightly)
+            animateCardSlide(card, deckPos, targetPos, showFace, 250);
+            
+            // Render updated hand
+            renderPlayerHand(player);
+            
+            // Wait before next card (80ms = fast dealing feel)
+            await new Promise(r => setTimeout(r, 80));
+        }
+    }
+    
+    // Small delay after all cards dealt
+    await new Promise(r => setTimeout(r, 400));
 }
 
 function sortHand(player) {
@@ -218,7 +283,7 @@ function selectCardToPass(card) {
     renderPlayerHand('bottom');
 }
 
-function confirmPass() {
+async function confirmPass() {
     if (gameState.selectedCardsToPass.length !== 3) return;
     
     // Store human's cards to pass
@@ -237,7 +302,34 @@ function confirmPass() {
         );
     }
     
-    // Exchange cards for bots only
+    // Clear selection and hide modal
+    gameState.selectedCardsToPass = [];
+    hidePassModal();
+    
+    // Render hands without the passed cards
+    renderAllHands();
+    
+    // Animate all card passing
+    gameState.gamePhase = 'animating';
+    updateStatus('Passing cards...');
+    
+    // Create list of all passes to animate
+    const passAnimations = [];
+    for (const player of PLAYERS) {
+        const target = getPassTarget(player, gameState.passDirection);
+        passAnimations.push({
+            from: player,
+            to: target,
+            cards: gameState.passedCards[player]
+        });
+    }
+    
+    // Animate all passes simultaneously
+    await Promise.all(passAnimations.map(pass => 
+        animatePassingCards(pass.from, pass.to, pass.cards, 150)
+    ));
+    
+    // Now apply the card exchanges for bots
     for (const player of ['left', 'top', 'right']) {
         const target = getPassTarget(player, gameState.passDirection);
         if (target !== 'bottom') {
@@ -261,13 +353,9 @@ function confirmPass() {
         sortHand(player);
     }
     
-    // Clear selection and hide modal
-    gameState.selectedCardsToPass = [];
-    hidePassModal();
-    
     // Enter receiving phase
     gameState.gamePhase = 'receiving';
-    updateStatus('Click the cards on the left to reveal and collect them');
+    updateStatus('Click the cards to reveal and collect them');
     renderAllHands();
     renderReceivedCards();
 }
@@ -384,7 +472,7 @@ function playCard(player, card) {
     return true;
 }
 
-function completeTrick() {
+async function completeTrick() {
     // Find winner
     const leadCard = gameState.currentTrick[0];
     let winner = leadCard;
@@ -406,6 +494,10 @@ function completeTrick() {
     
     updateScores();
     updateCurrentPlayerInfo();
+    
+    // Animate cards sliding to winner
+    updateStatus(`${getPlayerName(winner.player)} wins the trick!`);
+    await animateTrickCollection(winner.player);
     
     // Clear table
     clearTable();
@@ -468,17 +560,22 @@ function endGame() {
     showGameOverModal(winner);
 }
 
-function nextRound() {
+async function nextRound() {
     hideRoundOverModal();
     gameState.roundNumber++;
     gameState.dealerIndex = (gameState.dealerIndex + 1) % 4;
     gameState.passDirection = gameState.passDirection === 'right' ? 'left' : 'right';
-    startRound();
+    await startRound();
 }
 
 function newGame() {
     hideGameOverModal();
-    initGame();
+    gameState.scores = { bottom: 0, left: 0, top: 0, right: 0 };
+    gameState.roundNumber = 1;
+    gameState.dealerIndex = 0;
+    gameState.passDirection = 'right';
+    updateScores();
+    startGame();
 }
 
 // =====================
@@ -590,6 +687,113 @@ function getCurrentTrickWinner() {
 // =====================
 // UI Rendering
 // =====================
+
+// Get player position for animations
+function getPlayerPosition(player) {
+    const positions = {
+        bottom: { x: window.innerWidth / 2, y: window.innerHeight - 80 },
+        top: { x: window.innerWidth / 2, y: 120 },
+        left: { x: 80, y: window.innerHeight / 2 },
+        right: { x: window.innerWidth - 80, y: window.innerHeight / 2 }
+    };
+    return positions[player];
+}
+
+// Get received cards area position
+function getReceivedCardsPosition() {
+    const area = document.getElementById('received-cards-area');
+    if (area) {
+        const rect = area.getBoundingClientRect();
+        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+    return { x: window.innerWidth / 2 - 400, y: window.innerHeight - 80 };
+}
+
+// Animate a card sliding from one position to another
+function animateCardSlide(card, fromPos, toPos, showFace = false, duration = 500) {
+    return new Promise(resolve => {
+        const layer = document.getElementById('card-animation-layer');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'sliding-card';
+        
+        const cardEl = createCardElement(card, showFace);
+        wrapper.appendChild(cardEl);
+        
+        // Start position
+        wrapper.style.left = `${fromPos.x - 35}px`;
+        wrapper.style.top = `${fromPos.y - 50}px`;
+        wrapper.style.opacity = '1';
+        
+        layer.appendChild(wrapper);
+        
+        // Force reflow
+        wrapper.offsetHeight;
+        
+        // Animate to end position
+        wrapper.style.transitionDuration = `${duration}ms`;
+        wrapper.style.left = `${toPos.x - 35}px`;
+        wrapper.style.top = `${toPos.y - 50}px`;
+        
+        setTimeout(() => {
+            wrapper.remove();
+            resolve();
+        }, duration);
+    });
+}
+
+// Animate multiple cards sliding (for passing)
+async function animatePassingCards(fromPlayer, toPlayer, cards, staggerDelay = 200) {
+    const fromPos = getPlayerPosition(fromPlayer);
+    let toPos;
+    
+    if (toPlayer === 'bottom') {
+        toPos = getReceivedCardsPosition();
+    } else {
+        toPos = getPlayerPosition(toPlayer);
+    }
+    
+    for (let i = 0; i < cards.length; i++) {
+        animateCardSlide(cards[i], fromPos, toPos, false, 400);
+        if (i < cards.length - 1) {
+            await new Promise(r => setTimeout(r, staggerDelay));
+        }
+    }
+    
+    // Wait for last animation to complete
+    await new Promise(r => setTimeout(r, 400));
+}
+
+// Animate trick collection
+async function animateTrickCollection(winnerPlayer) {
+    const surface = document.getElementById('table-surface');
+    const tableCards = surface.querySelectorAll('.table-card');
+    const winnerPos = getPlayerPosition(winnerPlayer);
+    
+    const promises = [];
+    
+    tableCards.forEach((tableCard, index) => {
+        const rect = tableCard.getBoundingClientRect();
+        const cardData = gameState.currentTrick[index];
+        
+        if (cardData) {
+            const fromPos = { 
+                x: rect.left + rect.width / 2, 
+                y: rect.top + rect.height / 2 
+            };
+            
+            promises.push(
+                new Promise(resolve => {
+                    setTimeout(() => {
+                        animateCardSlide(cardData.card, fromPos, winnerPos, true, 500)
+                            .then(resolve);
+                    }, index * 100);
+                })
+            );
+        }
+    });
+    
+    await Promise.all(promises);
+}
 
 function createCardElement(card, showFace = true) {
     const div = document.createElement('div');
@@ -981,6 +1185,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-confirm-pass').addEventListener('click', confirmPass);
     document.getElementById('btn-next-round').addEventListener('click', nextRound);
     document.getElementById('btn-new-game').addEventListener('click', newGame);
+    document.getElementById('btn-start-game').addEventListener('click', startGame);
     document.getElementById('taken-cards-stack').addEventListener('click', showTakenCardsModal);
     document.getElementById('btn-close-taken').addEventListener('click', hideTakenCardsModal);
     
