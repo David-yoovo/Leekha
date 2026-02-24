@@ -12,6 +12,149 @@ const SUIT_SYMBOLS = {
 const PLAYERS = ['bottom', 'left', 'top', 'right']; // bottom is human
 const WINNING_SCORE = 101;
 
+// Audio Context for Web Audio API
+let audioContext = null;
+let soundEnabled = true;
+let musicEnabled = true;
+
+// Preloaded audio files
+const cardDealSound = new Audio('sounds/card-deal.mp3');
+cardDealSound.volume = 1;
+cardDealSound.loop = true; // Loop during dealing
+
+// Initialize audio context on first user interaction
+function initAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioContext;
+}
+
+// Sound generation using Web Audio API
+function playTone(frequency, duration, type = 'sine', volume = 0.3) {
+    if (!soundEnabled) return;
+    try {
+        const ctx = initAudioContext();
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+        
+        gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + duration);
+    } catch (e) {}
+}
+
+// Play noise burst (for paper/card sounds)
+function playNoise(duration, volume = 0.2) {
+    if (!soundEnabled) return;
+    try {
+        const ctx = initAudioContext();
+        const bufferSize = ctx.sampleRate * duration;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+        }
+        
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.value = 2000;
+        
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        
+        noise.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        noise.start();
+        noise.stop(ctx.currentTime + duration);
+    } catch (e) {}
+}
+
+// Sound effects
+function playSound(soundId) {
+    if (!soundEnabled) return;
+    
+    switch(soundId) {
+        case 'sound-card-deal':
+            cardDealSound.currentTime = 0;
+            cardDealSound.play().catch(() => {});
+            break;
+        case 'sound-card-play':
+            playTone(600, 0.08, 'sine', 0.2);
+            setTimeout(() => playTone(900, 0.05, 'sine', 0.15), 30);
+            break;
+        case 'sound-card-flip':
+            playTone(400, 0.1, 'triangle', 0.2);
+            break;
+        case 'sound-trick-win':
+            playTone(523, 0.15, 'sine', 0.3);
+            setTimeout(() => playTone(659, 0.15, 'sine', 0.3), 100);
+            setTimeout(() => playTone(784, 0.2, 'sine', 0.3), 200);
+            break;
+        case 'sound-round-end':
+            playTone(440, 0.2, 'sine', 0.3);
+            setTimeout(() => playTone(554, 0.2, 'sine', 0.3), 150);
+            setTimeout(() => playTone(659, 0.3, 'sine', 0.3), 300);
+            break;
+        case 'sound-game-over':
+            playTone(784, 0.2, 'sine', 0.3);
+            setTimeout(() => playTone(659, 0.2, 'sine', 0.3), 200);
+            setTimeout(() => playTone(523, 0.3, 'sine', 0.3), 400);
+            setTimeout(() => playTone(392, 0.4, 'sine', 0.3), 600);
+            break;
+        case 'sound-button':
+            playTone(1000, 0.05, 'sine', 0.15);
+            break;
+    }
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    const btn = document.getElementById('btn-sound');
+    btn.classList.toggle('muted', !soundEnabled);
+    btn.textContent = soundEnabled ? '🔊' : '🔇';
+}
+
+function toggleMusic() {
+    musicEnabled = !musicEnabled;
+    const btn = document.getElementById('btn-music');
+    const bgm = document.getElementById('bgm');
+    btn.classList.toggle('muted', !musicEnabled);
+    btn.textContent = musicEnabled ? '🎵' : '🎵';
+    
+    if (musicEnabled && bgm) {
+        bgm.volume = 0.3;
+        bgm.play().catch(() => {});
+    } else if (bgm) {
+        bgm.pause();
+    }
+}
+
+function startBackgroundMusic() {
+    if (musicEnabled) {
+        const bgm = document.getElementById('bgm');
+        if (bgm) {
+            bgm.volume = 0.3;
+            bgm.play().catch(() => {});
+        }
+    }
+}
+
 // Game State
 let gameState = {
     deck: [],
@@ -181,6 +324,8 @@ function hideStartModal() {
 
 async function startGame() {
     hideStartModal();
+    playSound('sound-button');
+    startBackgroundMusic();
     await startRound();
 }
 
@@ -231,6 +376,12 @@ async function dealCardsWithAnimation() {
     
     let deckIndex = 0;
     
+    // Start deal sound once at the beginning
+    if (soundEnabled) {
+        cardDealSound.currentTime = 0;
+        cardDealSound.play().catch(() => {});
+    }
+    
     // Deal 13 cards to each player, one at a time rotating between players
     for (let cardNum = 0; cardNum < 13; cardNum++) {
         for (let i = 0; i < 4; i++) {
@@ -254,6 +405,10 @@ async function dealCardsWithAnimation() {
             await new Promise(r => setTimeout(r, 80));
         }
     }
+    
+    // Stop the deal sound when done
+    cardDealSound.pause();
+    cardDealSound.currentTime = 0;
     
     // Small delay after all cards dealt
     await new Promise(r => setTimeout(r, 400));
@@ -285,6 +440,8 @@ function selectCardToPass(card) {
 
 async function confirmPass() {
     if (gameState.selectedCardsToPass.length !== 3) return;
+    
+    playSound('sound-button');
     
     // Store human's cards to pass
     gameState.passedCards.bottom = [...gameState.selectedCardsToPass];
@@ -433,6 +590,8 @@ function getPlayableCards(player) {
 function playCard(player, card) {
     if (!canPlayCard(player, card)) return false;
     
+    playSound('sound-card-play');
+    
     // Remove card from hand
     const cardIdx = gameState.hands[player].findIndex(c => getCardId(c) === getCardId(card));
     if (cardIdx === -1) return false;
@@ -492,6 +651,8 @@ async function completeTrick() {
     const wonCards = gameState.currentTrick.map(t => t.card);
     gameState.takenCards[winner.player].push(...wonCards);
     
+    playSound('sound-trick-win');
+    
     updateScores();
     updateCurrentPlayerInfo();
     
@@ -528,6 +689,8 @@ async function completeTrick() {
 function endRound() {
     gameState.gamePhase = 'roundOver';
     
+    playSound('sound-round-end');
+    
     // Add round scores to total
     for (const player of PLAYERS) {
         gameState.scores[player] += gameState.roundScores[player];
@@ -547,6 +710,8 @@ function endRound() {
 function endGame() {
     gameState.gamePhase = 'gameOver';
     
+    playSound('sound-game-over');
+    
     // Find winner (lowest score)
     let minScore = Infinity;
     let winner = null;
@@ -561,6 +726,7 @@ function endGame() {
 }
 
 async function nextRound() {
+    playSound('sound-button');
     hideRoundOverModal();
     gameState.roundNumber++;
     gameState.dealerIndex = (gameState.dealerIndex + 1) % 4;
@@ -569,6 +735,7 @@ async function nextRound() {
 }
 
 function newGame() {
+    playSound('sound-button');
     hideGameOverModal();
     gameState.scores = { bottom: 0, left: 0, top: 0, right: 0 };
     gameState.roundNumber = 1;
@@ -921,6 +1088,7 @@ function renderReceivedCards() {
 function revealReceivedCard(index) {
     if (gameState.gamePhase !== 'receiving') return;
     
+    playSound('sound-card-flip');
     gameState.receivedCards[index].revealed = true;
     renderReceivedCards();
 }
@@ -930,6 +1098,8 @@ function collectReceivedCard(index) {
     
     const item = gameState.receivedCards[index];
     if (!item.revealed) return;
+    
+    playSound('sound-card-play');
     
     // Add card to hand
     gameState.hands.bottom.push(item.card);
@@ -1211,6 +1381,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-start-game').addEventListener('click', startGame);
     document.getElementById('taken-cards-stack').addEventListener('click', showTakenCardsModal);
     document.getElementById('btn-close-taken').addEventListener('click', hideTakenCardsModal);
+    document.getElementById('btn-sound').addEventListener('click', toggleSound);
+    document.getElementById('btn-music').addEventListener('click', toggleMusic);
     
     initGame();
 });
