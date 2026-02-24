@@ -590,6 +590,13 @@ function getPlayableCards(player) {
 function playCard(player, card) {
     if (!canPlayCard(player, card)) return false;
     
+    // Check if multiplayer mode - let server handle it
+    if (typeof isMultiplayer !== 'undefined' && isMultiplayer && player === 'bottom') {
+        if (typeof multiplayerPlayCard === 'function' && multiplayerPlayCard(player, card)) {
+            return true;
+        }
+    }
+    
     playSound('sound-card-play');
     
     // Remove card from hand
@@ -1375,14 +1382,24 @@ function getPlayerName(player) {
 document.addEventListener('DOMContentLoaded', () => {
     setupTableDrop();
     
-    document.getElementById('btn-confirm-pass').addEventListener('click', confirmPass);
+    document.getElementById('btn-confirm-pass').addEventListener('click', () => {
+        // Check if multiplayer mode
+        if (typeof isMultiplayer !== 'undefined' && isMultiplayer) {
+            if (typeof multiplayerConfirmPass === 'function') {
+                multiplayerConfirmPass();
+                return;
+            }
+        }
+        confirmPass();
+    });
     document.getElementById('btn-next-round').addEventListener('click', nextRound);
     document.getElementById('btn-new-game').addEventListener('click', newGame);
-    document.getElementById('btn-start-game').addEventListener('click', startGame);
+    // btn-start-game is now handled by multiplayer.js mode selection
     document.getElementById('taken-cards-stack').addEventListener('click', showTakenCardsModal);
     document.getElementById('btn-close-taken').addEventListener('click', hideTakenCardsModal);
     document.getElementById('btn-sound').addEventListener('click', toggleSound);
     document.getElementById('btn-music').addEventListener('click', toggleMusic);
     
+    // initGame is called but doesn't auto-start - waits for mode selection
     initGame();
 });

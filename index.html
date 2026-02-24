@@ -100,12 +100,73 @@
             </div>
         </div>
 
-        <!-- Start Game Modal -->
+        <!-- Start Game Modal - Mode Selection -->
         <div class="modal active" id="start-modal">
-            <div class="modal-content">
+            <div class="modal-content mode-select">
                 <h2 style="color: #ffd700; margin-bottom: 20px;">Welcome to Leekha!</h2>
-                <p style="margin-bottom: 20px;">A classic card game for 4 players</p>
-                <button class="btn-confirm btn-start" id="btn-start-game">Start Game</button>
+                <p style="margin-bottom: 25px;">Choose your game mode</p>
+                <div class="mode-buttons">
+                    <button class="btn-mode" id="btn-solo">
+                        <span class="mode-icon">🤖</span>
+                        <span class="mode-title">Solo</span>
+                        <span class="mode-desc">Play against bots</span>
+                    </button>
+                    <button class="btn-mode" id="btn-multiplayer">
+                        <span class="mode-icon">👥</span>
+                        <span class="mode-title">Multiplayer</span>
+                        <span class="mode-desc">Play with friends</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multiplayer Lobby Modal -->
+        <div class="modal" id="lobby-modal">
+            <div class="modal-content lobby-content">
+                <h2 style="color: #ffd700; margin-bottom: 20px;">Multiplayer Lobby</h2>
+                
+                <!-- Name Input Section -->
+                <div class="lobby-section" id="name-section">
+                    <label for="player-name">Enter your name:</label>
+                    <input type="text" id="player-name" placeholder="Your name" maxlength="15" autocomplete="off">
+                    <button class="btn-confirm" id="btn-set-name">Continue</button>
+                </div>
+
+                <!-- Room Options Section -->
+                <div class="lobby-section hidden" id="room-section">
+                    <p class="welcome-name">Welcome, <span id="display-name"></span>!</p>
+                    <div class="room-options">
+                        <button class="btn-room-option" id="btn-create-room">
+                            <span>🏠</span> Create Room
+                        </button>
+                        <div class="join-room-row">
+                            <input type="text" id="room-code-input" placeholder="Room Code" maxlength="6" autocomplete="off">
+                            <button class="btn-room-option btn-join" id="btn-join-room">
+                                <span>🚪</span> Join
+                            </button>
+                        </div>
+                    </div>
+                    <div class="room-error hidden" id="room-error"></div>
+                </div>
+
+                <!-- Waiting Room Section -->
+                <div class="lobby-section hidden" id="waiting-section">
+                    <div class="room-code-display">
+                        <span>Room Code:</span>
+                        <span class="code" id="current-room-code">------</span>
+                        <button class="btn-copy" id="btn-copy-code" title="Copy code">📋</button>
+                    </div>
+                    <div class="players-list" id="players-list">
+                        <!-- Players will be added dynamically -->
+                    </div>
+                    <div class="waiting-status" id="waiting-status">Waiting for players...</div>
+                    <div class="lobby-buttons">
+                        <button class="btn-ready" id="btn-ready">Ready</button>
+                        <button class="btn-leave" id="btn-leave-room">Leave</button>
+                    </div>
+                </div>
+
+                <button class="btn-back" id="btn-back-to-menu">← Back to Menu</button>
             </div>
         </div>
 
@@ -140,6 +201,8 @@
         <div class="card-animation-layer" id="card-animation-layer"></div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
+    <script src="multiplayer.js"></script>
 </body>
 </html>
