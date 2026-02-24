@@ -220,8 +220,25 @@ class GameManager {
         // Store passed cards
         game.passedCards[position] = cardsToPass;
 
-        // Notify player
+        // Notify player that their pass was confirmed
         this.emitToPlayer(roomId, playerId, 'cardsPassedConfirmed', { cards: cardsToPass });
+
+        // Notify the receiving player that cards are coming to them
+        const targetPosition = this.getPassTarget(position, game.passDirection);
+        const targetPlayerId = game.getPlayerIdByPosition(targetPosition);
+        
+        // Calculate relative position of sender from receiver's perspective
+        const positionOrder = ['bottom', 'left', 'top', 'right'];
+        const senderIdx = positionOrder.indexOf(position);
+        const receiverIdx = positionOrder.indexOf(targetPosition);
+        const relativeSenderPos = positionOrder[(senderIdx - receiverIdx + 4) % 4];
+        
+        this.io.to(roomId).emit('cardsIncoming', {
+            targetPlayer: targetPlayerId,
+            fromPosition: relativeSenderPos,
+            cards: cardsToPass,
+            senderHasPassed: true
+        });
 
         // Check if all players have passed
         const allPassed = POSITIONS.every(pos => game.passedCards[pos].length === 3);

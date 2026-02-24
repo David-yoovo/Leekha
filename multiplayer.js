@@ -5,6 +5,8 @@ let myUsername = '';
 let myRoomId = '';
 let isReady = false;
 let multiplayerNames = {}; // Store player names by position
+let hasPassed = false; // Track if we've confirmed our pass
+let pendingReceivedCards = []; // Cards received before we passed
 
 // DOM Elements
 const startModal = document.getElementById('start-modal');
@@ -69,6 +71,20 @@ function connectToServer() {
     socket.on('roundStarted', (data) => {
         if (data.targetPlayer === socket.id) {
             handleMultiplayerGameStart(data.state);
+        }
+    });
+
+    socket.on('cardsIncoming', (data) => {
+        if (data.targetPlayer === socket.id) {
+            handleCardsIncoming(data);
+        }
+    });
+
+    socket.on('cardsPassedConfirmed', (data) => {
+        if (data.targetPlayer === socket.id) {
+            hasPassed = true;
+            // Check if we have pending cards to reveal
+            checkPendingReceivedCards();
         }
     });
 
@@ -323,6 +339,10 @@ document.addEventListener('DOMContentLoaded', () => {
 async function handleMultiplayerGameStart(state) {
     hideLobby();
     
+    // Reset pass state for new round
+    hasPassed = false;
+    pendingReceivedCards = [];
+    
     // Store player names
     multiplayerNames = state.playerNames || {};
     
@@ -448,34 +468,150 @@ function getMultiplayerPlayerName(player) {
     return names[player] || player;
 }
 
+// Handle cards coming from another player
+function handleCardsIncoming(data) {
+    // Cards are being passed to us from another player
+    pendingReceivedCards = data.cards.map(card => ({
+        card: card,
+        revealed: false, // Show face down initially
+        locked: !hasPassed // Can't interact until we've passed
+    }));
+    
+    // Store pass direction for positioning
+    gameState.passDirection = gameState.passDirection || 'right';
+    
+    // Render the pending received cards (locked if we haven't passed)
+    renderPendingReceivedCards();
+}
+
+// Check if we can unlock pending received cards
+function checkPendingReceivedCards() {
+    if (hasPassed && pendingReceivedCards.length > 0) {
+        // Unlock the cards so player can reveal them
+        pendingReceivedCards.forEach(item => {
+            item.locked = false;
+        });
+        renderPendingReceivedCards();
+        updateStatus('Cards received! Click to reveal them.');
+    }
+}
+
+// Render pending received cards (shown during passing phase)
+function renderPendingReceivedCards() {
+    const container = document.getElementById('received-cards-area');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    container.classList.remove('from-left', 'from-right');
+    
+    if (pendingReceivedCards.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'flex';
+    
+    // Position based on pass direction (opposite of where we're passing TO)
+    // If passing right, we receive from left; if passing left, we receive from right
+    if (gameState.passDirection === 'right') {
+        container.classList.add('from-left');
+    } else {
+        container.classList.add('from-right');
+    }
+    
+    pendingReceivedCards.forEach((item, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'received-card';
+        const rotation = gameState.passDirection === 'right' 
+            ? (5 + index * 5)  // Coming from left
+            : -(5 + index * 5); // Coming from right
+        cardEl.style.transform = `rotate(${rotation}deg)`;
+        cardEl.style.zIndex = index;
+        
+        if (item.revealed) {
+            // Show face
+            const suitClass = `suit-${item.card.suit}`;
+            cardEl.classList.add('card', 'revealed');
+            cardEl.innerHTML = `
+                <div class="card-corner card-corner-top ${suitClass}">${item.card.rank}${SUIT_SYMBOLS[item.card.suit]}</div>
+                <div class="card-center ${suitClass}">${SUIT_SYMBOLS[item.card.suit]}</div>
+                <div class="card-corner card-corner-bottom ${suitClass}">${item.card.rank}${SUIT_SYMBOLS[item.card.suit]}</div>
+            `;
+            if (!item.locked) {
+                cardEl.addEventListener('click', () => collectPendingCard(index));
+            }
+        } else {
+            // Show back
+            cardEl.classList.add('card', 'card-back');
+            if (item.locked) {
+                cardEl.classList.add('locked');
+                cardEl.title = 'Pass your cards first!';
+            } else {
+                cardEl.addEventListener('click', () => revealPendingCard(index));
+            }
+        }
+        
+        container.appendChild(cardEl);
+    });
+}
+
+// Reveal a pending received card
+function revealPendingCard(index) {
+    if (pendingReceivedCards[index].locked) return;
+    
+    playSound('sound-card-flip');
+    pendingReceivedCards[index].revealed = true;
+    renderPendingReceivedCards();
+}
+
+// Collect a revealed pending card
+function collectPendingCard(index) {
+    const item = pendingReceivedCards[index];
+    if (!item.revealed || item.locked) return;
+    
+    playSound('sound-card-play');
+    
+    // Add card to hand
+    gameState.hands.bottom.push(item.card);
+    
+    // Remove from pending cards
+    pendingReceivedCards.splice(index, 1);
+    
+    // Sort hand and re-render
+    sortHand('bottom');
+    renderPlayerHand('bottom');
+    renderPendingReceivedCards();
+    
+    // Check if all cards collected - this is handled by cardsExchanged from server
+}
+
 function handleCardsExchanged(state) {
+    // Clear pending received cards - server handles the final exchange
+    pendingReceivedCards = [];
+    
     // Update player names if included
     if (state.playerNames) {
         multiplayerNames = state.playerNames;
         updatePlayerLabels();
     }
     
-    // Update hand with received cards
+    // Use server's definitive hand (includes received cards)
     gameState.hands.bottom = state.myHand;
-    gameState.receivedCards = state.myReceivedCards.map(card => ({
-        card: card,
-        revealed: true
-    }));
     gameState.gamePhase = state.phase;
     gameState.currentPlayer = state.currentPlayer;
     
-    hidePassModal();
-    renderAllHands();
-    renderReceivedCards();
-    
-    // Collect received cards immediately for multiplayer
-    for (const card of state.myReceivedCards) {
-        gameState.hands.bottom.push(card);
-    }
+    // Clear any previous received cards UI
     gameState.receivedCards = [];
+    
+    hidePassModal();
+    
+    // Hide pending cards area
+    const receivedArea = document.getElementById('received-cards-area');
+    if (receivedArea) receivedArea.style.display = 'none';
+    
+    // Sort and render final hand
     sortHand('bottom');
-    renderPlayerHand('bottom');
-    renderReceivedCards();
+    renderAllHands();
     
     // Start playing phase with correct player name
     gameState.gamePhase = 'playing';
@@ -631,6 +767,16 @@ function multiplayerConfirmPass() {
     if (!isMultiplayer) return false;
     
     const cardIds = gameState.selectedCardsToPass.map(c => `${c.rank}-${c.suit}`);
+    
+    // Remove the passed cards from hand
+    for (const card of gameState.selectedCardsToPass) {
+        const cardId = `${card.rank}-${card.suit}`;
+        gameState.hands.bottom = gameState.hands.bottom.filter(c => 
+            `${c.rank}-${c.suit}` !== cardId
+        );
+    }
+    
+    // Send to server
     socket.emit('selectCardsToPass', cardIds);
     
     // Clear selection and hide modal
@@ -638,6 +784,9 @@ function multiplayerConfirmPass() {
     hidePassModal();
     renderPlayerHand('bottom');
     updateStatus('Waiting for other players to pass cards...');
+    
+    // Check if we have pending received cards to reveal now
+    checkPendingReceivedCards();
     
     return true; // Handled
 }

@@ -531,6 +531,31 @@ body {
     border-radius: 5px;
 }
 
+.received-card.locked {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(30%);
+}
+
+.received-card.locked:hover {
+    transform: none !important;
+    box-shadow: none;
+}
+
+.received-card.locked::after {
+    content: '🔒 Pass your cards first';
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.65rem;
+    color: #ff6b6b;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 3px 8px;
+    border-radius: 5px;
+}
+
 /* Modals */
 .modal {
     display: none;
