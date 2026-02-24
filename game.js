@@ -702,11 +702,18 @@ function getPlayerPosition(player) {
 // Get received cards area position
 function getReceivedCardsPosition() {
     const area = document.getElementById('received-cards-area');
-    if (area) {
+    if (area && area.style.display !== 'none') {
         const rect = area.getBoundingClientRect();
         return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
     }
-    return { x: window.innerWidth / 2 - 400, y: window.innerHeight - 80 };
+    // Default position based on pass direction
+    if (gameState.passDirection === 'right') {
+        // Receiving from right player, so position on right side
+        return { x: window.innerWidth / 2 + 350, y: window.innerHeight - 80 };
+    } else {
+        // Receiving from left player, so position on left side
+        return { x: window.innerWidth / 2 - 350, y: window.innerHeight - 80 };
+    }
 }
 
 // Animate a card sliding from one position to another
@@ -861,6 +868,7 @@ function renderReceivedCards() {
     if (!container) return;
     
     container.innerHTML = '';
+    container.classList.remove('from-left', 'from-right');
     
     if (gameState.receivedCards.length === 0) {
         container.style.display = 'none';
@@ -869,10 +877,23 @@ function renderReceivedCards() {
     
     container.style.display = 'flex';
     
+    // Position based on who is passing to us
+    if (gameState.passDirection === 'right') {
+        // Right player passes to us, so put cards on right
+        container.classList.add('from-right');
+    } else {
+        // Left player passes to us, so put cards on left
+        container.classList.add('from-left');
+    }
+    
     gameState.receivedCards.forEach((item, index) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'received-card';
-        cardEl.style.transform = `rotate(${5 + index * 5}deg)`;
+        // Rotate cards based on which side they're on
+        const rotation = gameState.passDirection === 'right' 
+            ? -(5 + index * 5)  // Coming from right, rotate left
+            : (5 + index * 5);   // Coming from left, rotate right
+        cardEl.style.transform = `rotate(${rotation}deg)`;
         cardEl.style.zIndex = index;
         
         if (item.revealed) {

@@ -432,9 +432,7 @@ body {
 /* Received Cards Area */
 .received-cards-area {
     position: absolute;
-    left: 50%;
     bottom: 20px;
-    transform: translateX(-450px);
     display: flex;
     flex-direction: row;
     z-index: 200;
@@ -444,12 +442,32 @@ body {
     border: 2px dashed rgba(255, 215, 0, 0.5);
 }
 
+.received-cards-area.from-right {
+    right: 50%;
+    transform: translateX(450px);
+    flex-direction: row-reverse;
+}
+
+.received-cards-area.from-left {
+    left: 50%;
+    transform: translateX(-450px);
+}
+
 .received-card {
     width: 70px;
     height: 100px;
     cursor: pointer;
     transition: transform 0.3s, box-shadow 0.3s;
     margin-left: -15px;
+}
+
+.received-cards-area.from-right .received-card {
+    margin-left: 0;
+    margin-right: -15px;
+}
+
+.received-cards-area.from-right .received-card:first-child {
+    margin-right: 0;
 }
 
 .received-card:first-child {
