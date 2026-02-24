@@ -145,6 +145,7 @@ class GameManager {
             game.takenCards[pos] = [];
             game.passedCards[pos] = [];
             game.receivedCards[pos] = [];
+            game.collectedCards[pos] = false;
         }
         game.currentTrick = [];
         game.leadSuit = null;
@@ -257,13 +258,20 @@ class GameManager {
         for (const pos of POSITIONS) {
             const targetPos = this.getPassTarget(pos, game.passDirection);
             game.receivedCards[targetPos] = [...game.passedCards[pos]];
-            game.collectedCards[pos] = false;
+            // Don't reset collectedCards - players may have already collected during passing phase
         }
 
         // Move to collecting phase - players must collect their cards before playing starts
         game.phase = 'collecting';
         
-        // Cards will be added to hands when players collect them (or when all confirm collection)
+        // Check if all players have already collected (they may have collected during passing phase)
+        const allCollected = POSITIONS.every(pos => game.collectedCards[pos]);
+        if (allCollected) {
+            console.log('All players already collected cards, finalizing immediately');
+            this.finalizeCardExchange(roomId);
+            return;
+        }
+        
         // Notify players that collection phase has started
         this.broadcastGameState(roomId, 'collectingStarted');
     }
@@ -271,18 +279,25 @@ class GameManager {
     // Handle when a player has collected all their received cards
     handleCardsCollected(roomId, playerId) {
         const game = this.games.get(roomId);
-        if (!game || game.phase !== 'collecting') return;
+        if (!game) return;
+        
+        // Allow collection during both passing (early) and collecting phases
+        if (game.phase !== 'collecting' && game.phase !== 'passing') return;
 
         const position = game.getPositionByPlayerId(playerId);
         if (!position) return;
 
+        console.log(`Player ${position} collected cards (phase: ${game.phase})`);
+
         // Mark this player as having collected
         game.collectedCards[position] = true;
 
-        // Check if all players have collected
-        const allCollected = POSITIONS.every(pos => game.collectedCards[pos]);
-        if (allCollected) {
-            this.finalizeCardExchange(roomId);
+        // Only check if all collected when we're in collecting phase
+        if (game.phase === 'collecting') {
+            const allCollected = POSITIONS.every(pos => game.collectedCards[pos]);
+            if (allCollected) {
+                this.finalizeCardExchange(roomId);
+            }
         }
     }
 

@@ -591,6 +591,9 @@ function collectPendingCard(index) {
     // Check if all cards collected - notify server
     if (pendingReceivedCards.length === 0) {
         socket.emit('cardsCollected');
+        updateStatus('Waiting for other players to collect their cards...');
+    } else {
+        updateStatus(`Click to collect remaining ${pendingReceivedCards.length} card(s).`);
     }
 }
 
@@ -602,6 +605,15 @@ function handleCollectingStarted(state) {
     if (state.playerNames) {
         multiplayerNames = state.playerNames;
         updatePlayerLabels();
+    }
+    
+    // Update status message
+    if (pendingReceivedCards.length > 0) {
+        updateStatus('Cards received! Click to reveal and collect them.');
+    } else {
+        // We already collected all cards before this event came
+        socket.emit('cardsCollected');
+        updateStatus('Waiting for other players to collect their cards...');
     }
     
     // Update UI to reflect collecting phase
