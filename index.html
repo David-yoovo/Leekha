@@ -31,6 +31,21 @@
             </div>
         </div>
 
+        <!-- Current Player Info Panel -->
+        <div class="current-player-info" id="current-player-info">
+            <h3>Current Turn</h3>
+            <div class="info-header">
+                <span class="info-player-name">-</span>
+                <span class="info-score-label">Round Score: <span class="info-round-score">0</span></span>
+            </div>
+        </div>
+
+        <!-- Your Taken Cards Stack -->
+        <div class="taken-cards-stack" id="taken-cards-stack">
+            <div class="stack-label">Your Cards (<span id="taken-count">0</span>)</div>
+            <div class="stack-cards" id="stack-cards"></div>
+        </div>
+
         <!-- Game Status -->
         <div class="game-status" id="game-status">Welcome to Leekha!</div>
 
@@ -56,6 +71,9 @@
         <div class="table-center" id="table-center">
             <div class="table-surface" id="table-surface"></div>
         </div>
+
+        <!-- Received Cards Area (left side) -->
+        <div class="received-cards-area" id="received-cards-area" style="display: none;"></div>
 
         <!-- Bottom Player (Human) -->
         <div class="player-area player-bottom" id="player-bottom">
@@ -88,6 +106,15 @@
                 <h3>Round Complete!</h3>
                 <div class="round-scores" id="round-scores"></div>
                 <button class="btn-confirm" id="btn-next-round">Next Round</button>
+            </div>
+        </div>
+
+        <!-- Taken Cards Viewer Modal -->
+        <div class="modal" id="taken-cards-modal">
+            <div class="modal-content taken-cards-viewer">
+                <h3>Your Taken Cards</h3>
+                <div class="taken-cards-grid" id="taken-cards-grid"></div>
+                <button class="btn-confirm" id="btn-close-taken">Close</button>
             </div>
         </div>
     </div>

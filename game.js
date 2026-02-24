@@ -41,8 +41,15 @@ let gameState = {
     roundNumber: 1,
     passDirection: 'right', // alternates between 'right' and 'left'
     selectedCardsToPass: [],
-    gamePhase: 'passing', // 'passing', 'playing', 'trickComplete', 'roundOver', 'gameOver'
+    receivedCards: [], // cards received from other player, not yet added to hand
+    gamePhase: 'passing', // 'passing', 'receiving', 'playing', 'trickComplete', 'roundOver', 'gameOver'
     passedCards: {
+        bottom: [],
+        left: [],
+        top: [],
+        right: []
+    },
+    takenCards: {
         bottom: [],
         left: [],
         top: [],
@@ -163,7 +170,9 @@ function startRound() {
     gameState.currentTrick = [];
     gameState.leadSuit = null;
     gameState.passedCards = { bottom: [], left: [], top: [], right: [] };
+    gameState.takenCards = { bottom: [], left: [], top: [], right: [] };
     gameState.selectedCardsToPass = [];
+    gameState.receivedCards = [];
     
     // Create and shuffle deck
     gameState.deck = shuffleDeck(createDeck());
@@ -180,6 +189,8 @@ function startRound() {
     updateStatus(`Round ${gameState.roundNumber}: Select 3 cards to pass ${gameState.passDirection}`);
     
     renderAllHands();
+    renderReceivedCards();
+    updateTakenCardsStack();
     showPassModal();
 }
 
@@ -226,14 +237,27 @@ function confirmPass() {
         );
     }
     
-    // Exchange cards
-    for (const player of PLAYERS) {
+    // Exchange cards for bots only
+    for (const player of ['left', 'top', 'right']) {
         const target = getPassTarget(player, gameState.passDirection);
-        gameState.hands[target].push(...gameState.passedCards[player]);
+        if (target !== 'bottom') {
+            gameState.hands[target].push(...gameState.passedCards[player]);
+        }
     }
     
-    // Sort all hands
-    for (const player of PLAYERS) {
+    // Human's cards go to target bot
+    const humanTarget = getPassTarget('bottom', gameState.passDirection);
+    gameState.hands[humanTarget].push(...gameState.passedCards.bottom);
+    
+    // Store cards that human will receive (don't add to hand yet)
+    const passingToBottom = getPassSource('bottom', gameState.passDirection);
+    gameState.receivedCards = gameState.passedCards[passingToBottom].map(card => ({
+        card: card,
+        revealed: false
+    }));
+    
+    // Sort bot hands
+    for (const player of ['left', 'top', 'right']) {
         sortHand(player);
     }
     
@@ -241,21 +265,11 @@ function confirmPass() {
     gameState.selectedCardsToPass = [];
     hidePassModal();
     
-    // Start playing phase
-    gameState.gamePhase = 'playing';
-    
-    // Player to the right of dealer starts
-    gameState.currentPlayer = PLAYERS[(gameState.dealerIndex + 1) % 4];
-    gameState.trickNumber = 1;
-    
-    updateStatus(`Trick ${gameState.trickNumber}: ${getPlayerName(gameState.currentPlayer)}'s turn`);
+    // Enter receiving phase
+    gameState.gamePhase = 'receiving';
+    updateStatus('Click the cards on the left to reveal and collect them');
     renderAllHands();
-    updateCurrentPlayerIndicator();
-    
-    // If bot starts, trigger bot play
-    if (gameState.currentPlayer !== 'bottom') {
-        setTimeout(botPlay, 1000);
-    }
+    renderReceivedCards();
 }
 
 function selectBotCardsToPass(player) {
@@ -358,6 +372,7 @@ function playCard(player, card) {
         gameState.currentPlayer = PLAYERS[nextIdx];
         updateStatus(`Trick ${gameState.trickNumber}: ${getPlayerName(gameState.currentPlayer)}'s turn`);
         updateCurrentPlayerIndicator();
+        updateCurrentPlayerInfo();
         renderPlayerHand('bottom'); // Update playable indicators
         
         // If bot's turn, trigger bot play
@@ -385,7 +400,12 @@ function completeTrick() {
     const points = calculateTrickPoints(gameState.currentTrick);
     gameState.roundScores[winner.player] += points;
     
+    // Store won cards
+    const wonCards = gameState.currentTrick.map(t => t.card);
+    gameState.takenCards[winner.player].push(...wonCards);
+    
     updateScores();
+    updateCurrentPlayerInfo();
     
     // Clear table
     clearTable();
@@ -403,6 +423,7 @@ function completeTrick() {
         
         updateStatus(`Trick ${gameState.trickNumber}: ${getPlayerName(gameState.currentPlayer)}'s turn`);
         updateCurrentPlayerIndicator();
+        updateCurrentPlayerInfo();
         renderPlayerHand('bottom');
         
         // If bot's turn, trigger bot play
@@ -631,6 +652,93 @@ function renderAllHands() {
     PLAYERS.forEach(player => renderPlayerHand(player));
 }
 
+function renderReceivedCards() {
+    const container = document.getElementById('received-cards-area');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (gameState.receivedCards.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'flex';
+    
+    gameState.receivedCards.forEach((item, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'received-card';
+        cardEl.style.transform = `rotate(${5 + index * 5}deg)`;
+        cardEl.style.zIndex = index;
+        
+        if (item.revealed) {
+            // Show face
+            const suitClass = `suit-${item.card.suit}`;
+            cardEl.classList.add('card', 'revealed');
+            cardEl.innerHTML = `
+                <div class="card-corner card-corner-top ${suitClass}">${item.card.rank}${SUIT_SYMBOLS[item.card.suit]}</div>
+                <div class="card-center ${suitClass}">${SUIT_SYMBOLS[item.card.suit]}</div>
+                <div class="card-corner card-corner-bottom ${suitClass}">${item.card.rank}${SUIT_SYMBOLS[item.card.suit]}</div>
+            `;
+            cardEl.addEventListener('click', () => collectReceivedCard(index));
+        } else {
+            // Show back
+            cardEl.classList.add('card', 'card-back');
+            cardEl.addEventListener('click', () => revealReceivedCard(index));
+        }
+        
+        container.appendChild(cardEl);
+    });
+}
+
+function revealReceivedCard(index) {
+    if (gameState.gamePhase !== 'receiving') return;
+    
+    gameState.receivedCards[index].revealed = true;
+    renderReceivedCards();
+}
+
+function collectReceivedCard(index) {
+    if (gameState.gamePhase !== 'receiving') return;
+    
+    const item = gameState.receivedCards[index];
+    if (!item.revealed) return;
+    
+    // Add card to hand
+    gameState.hands.bottom.push(item.card);
+    
+    // Remove from received cards
+    gameState.receivedCards.splice(index, 1);
+    
+    // Sort hand and re-render
+    sortHand('bottom');
+    renderPlayerHand('bottom');
+    renderReceivedCards();
+    
+    // Check if all cards collected
+    if (gameState.receivedCards.length === 0) {
+        startPlayingPhase();
+    }
+}
+
+function startPlayingPhase() {
+    gameState.gamePhase = 'playing';
+    
+    // Player to the right of dealer starts
+    gameState.currentPlayer = PLAYERS[(gameState.dealerIndex + 1) % 4];
+    gameState.trickNumber = 1;
+    
+    updateStatus(`Trick ${gameState.trickNumber}: ${getPlayerName(gameState.currentPlayer)}'s turn`);
+    renderAllHands();
+    updateCurrentPlayerIndicator();
+    updateCurrentPlayerInfo();
+    
+    // If bot starts, trigger bot play
+    if (gameState.currentPlayer !== 'bottom') {
+        setTimeout(botPlay, 1000);
+    }
+}
+
 function renderCardOnTable(player, card) {
     const surface = document.getElementById('table-surface');
     
@@ -793,6 +901,66 @@ function updateCurrentPlayerIndicator() {
     });
 }
 
+function updateCurrentPlayerInfo() {
+    const player = gameState.currentPlayer;
+    const container = document.getElementById('current-player-info');
+    if (!container) return;
+    
+    const playerName = getPlayerName(player);
+    const roundScore = gameState.roundScores[player];
+    
+    // Update player name and score
+    container.querySelector('.info-player-name').textContent = playerName;
+    container.querySelector('.info-round-score').textContent = roundScore;
+    
+    // Update your taken cards stack
+    updateTakenCardsStack();
+}
+
+function updateTakenCardsStack() {
+    const takenCards = gameState.takenCards.bottom;
+    const stackContainer = document.getElementById('stack-cards');
+    const countEl = document.getElementById('taken-count');
+    
+    if (!stackContainer || !countEl) return;
+    
+    countEl.textContent = takenCards.length;
+    stackContainer.innerHTML = '';
+    
+    // Show up to 5 stacked cards
+    const stackCount = Math.min(Math.ceil(takenCards.length / 4), 5);
+    for (let i = 0; i < stackCount; i++) {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'stack-card';
+        cardEl.style.top = `${-i * 3}px`;
+        cardEl.style.left = `${i * 2}px`;
+        stackContainer.appendChild(cardEl);
+    }
+}
+
+function showTakenCardsModal() {
+    const modal = document.getElementById('taken-cards-modal');
+    const grid = document.getElementById('taken-cards-grid');
+    const takenCards = gameState.takenCards.bottom;
+    
+    grid.innerHTML = '';
+    
+    if (takenCards.length === 0) {
+        grid.innerHTML = '<p style="color: #888;">No cards taken yet</p>';
+    } else {
+        takenCards.forEach(card => {
+            const cardEl = createCardElement(card, true);
+            grid.appendChild(cardEl);
+        });
+    }
+    
+    modal.classList.add('active');
+}
+
+function hideTakenCardsModal() {
+    document.getElementById('taken-cards-modal').classList.remove('active');
+}
+
 function getPlayerName(player) {
     const names = {
         bottom: 'You',
@@ -813,6 +981,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-confirm-pass').addEventListener('click', confirmPass);
     document.getElementById('btn-next-round').addEventListener('click', nextRound);
     document.getElementById('btn-new-game').addEventListener('click', newGame);
+    document.getElementById('taken-cards-stack').addEventListener('click', showTakenCardsModal);
+    document.getElementById('btn-close-taken').addEventListener('click', hideTakenCardsModal);
     
     initGame();
 });

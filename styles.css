@@ -57,6 +57,127 @@ body {
     font-weight: bold;
 }
 
+/* Current Player Info Panel */
+.current-player-info {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    padding: 15px;
+    color: white;
+    z-index: 100;
+    min-width: 180px;
+}
+
+.current-player-info h3 {
+    margin-bottom: 10px;
+    color: #ffd700;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.info-player-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #4ade80;
+}
+
+.info-score-label {
+    font-size: 0.85rem;
+}
+
+.info-round-score {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+/* Taken Cards Stack */
+.taken-cards-stack {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.stack-label {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+}
+
+.stack-cards {
+    position: relative;
+    width: 60px;
+    height: 85px;
+}
+
+.stack-card {
+    position: absolute;
+    width: 60px;
+    height: 85px;
+    background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+    background-image: 
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.1) 10px,
+            rgba(255, 255, 255, 0.1) 20px
+        );
+    border: 2px solid #ffd700;
+    border-radius: 6px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+}
+
+.taken-cards-stack:hover .stack-card {
+    transform: translateY(-3px);
+}
+
+.taken-cards-stack:hover .stack-label {
+    background: rgba(255, 215, 0, 0.8);
+    color: #1a1a1a;
+}
+
+/* Taken Cards Viewer Modal */
+.taken-cards-viewer {
+    max-width: 600px;
+    max-height: 80vh;
+}
+
+.taken-cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.taken-cards-grid .card {
+    cursor: default;
+}
+
+.taken-cards-grid .card:hover {
+    transform: none;
+}
+
 /* Game Status */
 .game-status {
     position: absolute;
@@ -180,15 +301,6 @@ body {
     border: 2px solid #ffd700;
 }
 
-.card.playable {
-    animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3); }
-    50% { box-shadow: 0 0 20px rgba(0, 255, 0, 0.5); }
-}
-
 .card.disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -200,14 +312,14 @@ body {
 
 .card-back {
     background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
-    background-image: 
+    /* background-image: 
         repeating-linear-gradient(
             45deg,
             transparent,
             transparent 10px,
             rgba(255, 255, 255, 0.1) 10px,
             rgba(255, 255, 255, 0.1) 20px
-        );
+        ); */
     border: 3px solid #ffd700;
 }
 
@@ -256,6 +368,11 @@ body {
     margin: -30px 0;
     width: 55px;
     height: 78px;
+    transform: rotate(90deg);
+}
+
+.player-left .card:hover, .player-right .card:hover {
+    transform: rotate(90deg);
 }
 
 .player-left .card .card-corner,
@@ -276,16 +393,16 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 300px;
-    height: 300px;
+    width: 380px;
+    height: 380px;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
 .table-surface {
-    width: 250px;
-    height: 250px;
+    width: 320px;
+    height: 320px;
     background: radial-gradient(ellipse at center, #2d5a4a 0%, #1a3a2a 100%);
     border-radius: 50%;
     border: 8px solid #8b4513;
@@ -304,12 +421,64 @@ body {
 }
 
 .table-card .card {
-    width: 60px;
-    height: 85px;
+    width: 75px;
+    height: 105px;
 }
 
 .table-card .card:hover {
     transform: none;
+}
+
+/* Received Cards Area */
+.received-cards-area {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-450px);
+    display: flex;
+    flex-direction: row;
+    z-index: 200;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px;
+    border: 2px dashed rgba(255, 215, 0, 0.5);
+}
+
+.received-card {
+    width: 70px;
+    height: 100px;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    margin-left: -15px;
+}
+
+.received-card:first-child {
+    margin-left: 0;
+}
+
+.received-card:hover {
+    transform: translateY(-15px) rotate(0deg) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}
+
+.received-card.revealed {
+    background: white;
+    cursor: pointer;
+}
+
+.received-card.revealed:hover::after {
+    content: 'Click to collect';
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: #ffd700;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 3px 8px;
+    border-radius: 5px;
 }
 
 /* Modals */
