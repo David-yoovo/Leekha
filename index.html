@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leekha - Card Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Score Display -->
+        <div class="scoreboard">
+            <h2>Leekha</h2>
+            <div class="scores">
+                <div class="score-item">
+                    <span class="player-name">You</span>
+                    <span class="player-score" id="score-bottom">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="player-name">Bot 1</span>
+                    <span class="player-score" id="score-left">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="player-name">Bot 2</span>
+                    <span class="player-score" id="score-top">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="player-name">Bot 3</span>
+                    <span class="player-score" id="score-right">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Status -->
+        <div class="game-status" id="game-status">Welcome to Leekha!</div>
+
+        <!-- Top Player (Bot 2) -->
+        <div class="player-area player-top" id="player-top">
+            <div class="player-label">Bot 2</div>
+            <div class="player-hand" id="hand-top"></div>
+        </div>
+
+        <!-- Left Player (Bot 1) -->
+        <div class="player-area player-left" id="player-left">
+            <div class="player-hand" id="hand-left"></div>
+            <div class="player-label">Bot 1</div>
+        </div>
+
+        <!-- Right Player (Bot 3) -->
+        <div class="player-area player-right" id="player-right">
+            <div class="player-hand" id="hand-right"></div>
+            <div class="player-label">Bot 3</div>
+        </div>
+
+        <!-- Center Table -->
+        <div class="table-center" id="table-center">
+            <div class="table-surface" id="table-surface"></div>
+        </div>
+
+        <!-- Bottom Player (Human) -->
+        <div class="player-area player-bottom" id="player-bottom">
+            <div class="player-hand" id="hand-bottom"></div>
+            <div class="player-label">You</div>
+        </div>
+
+        <!-- Card Passing Modal -->
+        <div class="modal" id="pass-modal">
+            <div class="modal-content">
+                <h3>Select 3 cards to pass</h3>
+                <p id="pass-direction"></p>
+                <div class="selected-cards" id="selected-cards"></div>
+                <button class="btn-confirm" id="btn-confirm-pass" disabled>Confirm Pass</button>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div class="modal" id="game-over-modal">
+            <div class="modal-content">
+                <h3 id="game-over-title">Game Over!</h3>
+                <div class="final-scores" id="final-scores"></div>
+                <button class="btn-confirm" id="btn-new-game">New Game</button>
+            </div>
+        </div>
+
+        <!-- Round Over Modal -->
+        <div class="modal" id="round-over-modal">
+            <div class="modal-content">
+                <h3>Round Complete!</h3>
+                <div class="round-scores" id="round-scores"></div>
+                <button class="btn-confirm" id="btn-next-round">Next Round</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
