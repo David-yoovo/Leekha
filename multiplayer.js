@@ -133,6 +133,12 @@ function connectToServer() {
         }
     });
 
+    socket.on('nextRoundStatus', (data) => {
+        if (data.targetPlayer === socket.id) {
+            handleNextRoundStatus(data);
+        }
+    });
+
     socket.on('gameOver', (data) => {
         if (data.targetPlayer === socket.id) {
             handleGameOver(data);
@@ -345,6 +351,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // Multiplayer game handlers
 async function handleMultiplayerGameStart(state) {
     hideLobby();
+    
+    // Hide round over modal if it was open (new round starting)
+    hideRoundOverModal();
     
     // Reset pass state for new round
     hasPassed = false;
@@ -773,10 +782,13 @@ function showRoundOverModalMultiplayer() {
     // Setup next round button for multiplayer
     const nextRoundBtn = document.getElementById('btn-next-round');
     if (nextRoundBtn) {
+        nextRoundBtn.textContent = 'Next Round';
+        nextRoundBtn.disabled = false;
         nextRoundBtn.onclick = () => {
             if (isMultiplayer && socket) {
                 socket.emit('nextRound');
-                hideRoundOverModal();
+                nextRoundBtn.textContent = 'Waiting for others... (1/4)';
+                nextRoundBtn.disabled = true;
             } else {
                 nextRound();
             }
@@ -784,6 +796,14 @@ function showRoundOverModalMultiplayer() {
     }
     
     modal.classList.add('active');
+}
+
+function handleNextRoundStatus(data) {
+    const nextRoundBtn = document.getElementById('btn-next-round');
+    if (nextRoundBtn && data.youReady) {
+        nextRoundBtn.textContent = `Waiting for others... (${data.readyCount}/${data.totalPlayers})`;
+        nextRoundBtn.disabled = true;
+    }
 }
 
 function handleGameOver(data) {

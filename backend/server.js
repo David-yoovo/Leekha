@@ -101,7 +101,7 @@ io.on('connection', (socket) => {
 
     socket.on('nextRound', () => {
         if (socket.roomId) {
-            gameManager.startNextRound(socket.roomId);
+            gameManager.startNextRound(socket.roomId, socket.id);
         }
     });
 

@@ -23,6 +23,7 @@ class GameState {
         this.passedCards = {}; // position -> cards[]
         this.receivedCards = {}; // position -> cards[]
         this.collectedCards = {}; // position -> true/false (has player collected all cards?)
+        this.readyForNextRound = {}; // position -> true/false (has player clicked next round?)
         this.phase = 'waiting'; // 'waiting', 'passing', 'collecting', 'playing', 'trickComplete', 'roundOver', 'gameOver'
         
         // Initialize scores and hands for each position
@@ -34,6 +35,7 @@ class GameState {
             this.passedCards[pos] = [];
             this.receivedCards[pos] = [];
             this.collectedCards[pos] = false;
+            this.readyForNextRound[pos] = false;
         }
     }
 
@@ -559,15 +561,52 @@ class GameManager {
     }
 
     // Start next round (called by client)
-    startNextRound(roomId) {
+    startNextRound(roomId, playerId) {
         const game = this.games.get(roomId);
         if (!game || game.phase !== 'roundOver') return;
 
-        game.roundNumber++;
-        game.dealerIndex = (game.dealerIndex + 1) % 4;
-        game.passDirection = game.passDirection === 'right' ? 'left' : 'right';
+        const position = game.getPositionByPlayerId(playerId);
+        if (!position) return;
 
-        this.startRound(roomId);
+        // Mark this player as ready
+        game.readyForNextRound[position] = true;
+        console.log(`Player ${position} ready for next round`);
+
+        // Notify all players about who's ready
+        this.broadcastNextRoundStatus(roomId);
+
+        // Check if all players are ready
+        const allReady = POSITIONS.every(pos => game.readyForNextRound[pos]);
+        if (allReady) {
+            // Reset ready state for next time
+            for (const pos of POSITIONS) {
+                game.readyForNextRound[pos] = false;
+            }
+            
+            game.roundNumber++;
+            game.dealerIndex = (game.dealerIndex + 1) % 4;
+            game.passDirection = game.passDirection === 'right' ? 'left' : 'right';
+
+            this.startRound(roomId);
+        }
+    }
+
+    // Broadcast next round readiness status
+    broadcastNextRoundStatus(roomId) {
+        const game = this.games.get(roomId);
+        if (!game) return;
+
+        const readyCount = POSITIONS.filter(pos => game.readyForNextRound[pos]).length;
+        
+        for (const [playerId, playerData] of game.players) {
+            const myPosition = game.getPositionByPlayerId(playerId);
+            this.io.to(roomId).emit('nextRoundStatus', {
+                targetPlayer: playerId,
+                readyCount: readyCount,
+                totalPlayers: 4,
+                youReady: game.readyForNextRound[myPosition]
+            });
+        }
     }
 
     // Handle player disconnect during game
