@@ -323,8 +323,19 @@ body {
 }
 
 .card:hover {
+    /* Only apply hover effect on actionable cards via .selectable class */
+}
+
+.card.selectable:hover {
     transform: translateY(-10px);
     box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+}
+
+.card.playable:hover {
+    transform: translateY(-10px);
+    box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
 }
 
 .card.selected {

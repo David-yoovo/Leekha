@@ -1010,6 +1010,7 @@ function renderPlayerHand(player) {
         if (isHuman) {
             if (gameState.gamePhase === 'passing') {
                 // Passing phase
+                cardEl.classList.add('selectable');
                 const isSelected = gameState.selectedCardsToPass.some(
                     c => getCardId(c) === getCardId(card)
                 );

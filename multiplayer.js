@@ -80,6 +80,12 @@ function connectToServer() {
         }
     });
 
+    socket.on('collectingStarted', (data) => {
+        if (data.targetPlayer === socket.id) {
+            handleCollectingStarted(data.state);
+        }
+    });
+
     socket.on('cardsPassedConfirmed', (data) => {
         if (data.targetPlayer === socket.id) {
             hasPassed = true;
@@ -582,7 +588,24 @@ function collectPendingCard(index) {
     renderPlayerHand('bottom');
     renderPendingReceivedCards();
     
-    // Check if all cards collected - this is handled by cardsExchanged from server
+    // Check if all cards collected - notify server
+    if (pendingReceivedCards.length === 0) {
+        socket.emit('cardsCollected');
+    }
+}
+
+// Handle when collecting phase starts
+function handleCollectingStarted(state) {
+    gameState.gamePhase = 'collecting';
+    
+    // Update player names if included
+    if (state.playerNames) {
+        multiplayerNames = state.playerNames;
+        updatePlayerLabels();
+    }
+    
+    // Update UI to reflect collecting phase
+    renderPlayerHand('bottom');
 }
 
 function handleCardsExchanged(state) {
@@ -781,6 +804,10 @@ function multiplayerConfirmPass() {
     
     // Clear selection and hide modal
     gameState.selectedCardsToPass = [];
+    
+    // Change phase so cards aren't selectable anymore
+    gameState.gamePhase = 'waitingForExchange';
+    
     hidePassModal();
     renderPlayerHand('bottom');
     updateStatus('Waiting for other players to pass cards...');

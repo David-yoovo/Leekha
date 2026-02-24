@@ -22,7 +22,8 @@ class GameState {
         this.passDirection = 'right';
         this.passedCards = {}; // position -> cards[]
         this.receivedCards = {}; // position -> cards[]
-        this.phase = 'waiting'; // 'waiting', 'passing', 'receiving', 'playing', 'trickComplete', 'roundOver', 'gameOver'
+        this.collectedCards = {}; // position -> true/false (has player collected all cards?)
+        this.phase = 'waiting'; // 'waiting', 'passing', 'collecting', 'playing', 'trickComplete', 'roundOver', 'gameOver'
         
         // Initialize scores and hands for each position
         for (const pos of POSITIONS) {
@@ -32,6 +33,7 @@ class GameState {
             this.takenCards[pos] = [];
             this.passedCards[pos] = [];
             this.receivedCards[pos] = [];
+            this.collectedCards[pos] = false;
         }
     }
 
@@ -255,9 +257,40 @@ class GameManager {
         for (const pos of POSITIONS) {
             const targetPos = this.getPassTarget(pos, game.passDirection);
             game.receivedCards[targetPos] = [...game.passedCards[pos]];
+            game.collectedCards[pos] = false;
         }
 
-        // Add received cards to hands
+        // Move to collecting phase - players must collect their cards before playing starts
+        game.phase = 'collecting';
+        
+        // Cards will be added to hands when players collect them (or when all confirm collection)
+        // Notify players that collection phase has started
+        this.broadcastGameState(roomId, 'collectingStarted');
+    }
+
+    // Handle when a player has collected all their received cards
+    handleCardsCollected(roomId, playerId) {
+        const game = this.games.get(roomId);
+        if (!game || game.phase !== 'collecting') return;
+
+        const position = game.getPositionByPlayerId(playerId);
+        if (!position) return;
+
+        // Mark this player as having collected
+        game.collectedCards[position] = true;
+
+        // Check if all players have collected
+        const allCollected = POSITIONS.every(pos => game.collectedCards[pos]);
+        if (allCollected) {
+            this.finalizeCardExchange(roomId);
+        }
+    }
+
+    finalizeCardExchange(roomId) {
+        const game = this.games.get(roomId);
+        if (!game) return;
+
+        // Add received cards to hands (for any cards not already collected client-side)
         for (const pos of POSITIONS) {
             game.hands[pos].push(...game.receivedCards[pos]);
             this.sortHand(game.hands[pos]);
@@ -268,7 +301,7 @@ class GameManager {
         game.trickNumber = 1;
         game.currentPlayer = POSITIONS[(game.dealerIndex + 1) % 4];
 
-        // Broadcast the exchange
+        // Broadcast the exchange complete
         this.broadcastGameState(roomId, 'cardsExchanged');
     }
 

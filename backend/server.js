@@ -91,6 +91,10 @@ io.on('connection', (socket) => {
         gameManager.handlePassCards(socket.roomId, socket.id, cardIds);
     });
 
+    socket.on('cardsCollected', () => {
+        gameManager.handleCardsCollected(socket.roomId, socket.id);
+    });
+
     socket.on('playCard', (cardId) => {
         gameManager.handlePlayCard(socket.roomId, socket.id, cardId);
     });
