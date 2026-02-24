@@ -773,7 +773,7 @@ async function animatePassingCards(fromPlayer, toPlayer, cards, staggerDelay = 2
 // Animate trick collection
 async function animateTrickCollection(winnerPlayer) {
     const surface = document.getElementById('table-surface');
-    const tableCards = surface.querySelectorAll('.table-card');
+    const tableCards = Array.from(surface.querySelectorAll('.table-card'));
     const winnerPos = getPlayerPosition(winnerPlayer);
     
     const promises = [];
@@ -791,6 +791,8 @@ async function animateTrickCollection(winnerPlayer) {
             promises.push(
                 new Promise(resolve => {
                     setTimeout(() => {
+                        // Remove the table card from DOM immediately when animation starts
+                        tableCard.remove();
                         animateCardSlide(cardData.card, fromPos, winnerPos, true, 500)
                             .then(resolve);
                     }, index * 100);
