@@ -1115,6 +1115,9 @@ function renderAllHands() {
 
 function renderReceivedCards() {
     const container = document.getElementById('received-cards-area');
+    const mobileIndicator = document.getElementById('mobile-received-indicator');
+    const mobileCount = document.getElementById('mobile-received-count');
+    
     if (!container) return;
     
     container.innerHTML = '';
@@ -1122,10 +1125,17 @@ function renderReceivedCards() {
     
     if (gameState.receivedCards.length === 0) {
         container.style.display = 'none';
+        mobileIndicator?.classList.add('hidden');
         return;
     }
     
     container.style.display = 'flex';
+    
+    // Update mobile indicator
+    if (isMobileDevice() && mobileIndicator && mobileCount) {
+        mobileIndicator.classList.remove('hidden');
+        mobileCount.textContent = gameState.receivedCards.length;
+    }
     
     // Position based on who is passing to us
     if (gameState.passDirection === 'right') {
@@ -1293,12 +1303,21 @@ function showPassModal() {
     const modal = document.getElementById('pass-modal');
     const direction = document.getElementById('pass-direction');
     direction.textContent = `Passing to your ${gameState.passDirection}`;
+    
+    // On mobile, show the mobile UI instead
+    if (isMobileDevice()) {
+        showMobilePassingUI();
+        // Don't show the desktop modal on mobile
+        return;
+    }
+    
     modal.classList.add('active');
     updatePassModal();
 }
 
 function hidePassModal() {
     document.getElementById('pass-modal').classList.remove('active');
+    hideMobileCardPicker();
 }
 
 function updatePassModal() {
@@ -1516,11 +1535,194 @@ function getPlayerName(player) {
 }
 
 // =====================
+// Mobile Card Picker
+// =====================
+
+function isMobileDevice() {
+    return window.innerWidth <= 768;
+}
+
+function showMobileCardPicker() {
+    if (!isMobileDevice()) return;
+    
+    const picker = document.getElementById('mobile-card-picker');
+    const selectBtn = document.getElementById('mobile-select-btn');
+    const passDir = document.getElementById('mobile-pass-direction');
+    
+    selectBtn?.classList.add('hidden');
+    passDir?.classList.add('hidden');
+    picker?.classList.add('active');
+    document.body.classList.add('mobile-passing-phase');
+    
+    renderMobileCardCarousel();
+}
+
+function hideMobileCardPicker() {
+    const picker = document.getElementById('mobile-card-picker');
+    const selectBtn = document.getElementById('mobile-select-btn');
+    const passDir = document.getElementById('mobile-pass-direction');
+    const preview = document.getElementById('mobile-selection-preview');
+    
+    picker?.classList.remove('active');
+    selectBtn?.classList.add('hidden');
+    passDir?.classList.add('hidden');
+    preview?.classList.add('hidden');
+    document.body.classList.remove('mobile-passing-phase');
+}
+
+function showMobilePassingUI() {
+    if (!isMobileDevice() || gameState.gamePhase !== 'passing') return;
+    
+    const selectBtn = document.getElementById('mobile-select-btn');
+    const passDir = document.getElementById('mobile-pass-direction');
+    
+    if (selectBtn) {
+        selectBtn.classList.remove('hidden');
+        selectBtn.textContent = `📤 Select Cards to Pass`;
+    }
+    
+    if (passDir) {
+        passDir.classList.remove('hidden');
+        passDir.textContent = `Passing to: ${gameState.passDirection === 'right' ? 'Right →' : '← Left'}`;
+    }
+    
+    updateMobileSelectionPreview();
+}
+
+function renderMobileCardCarousel() {
+    const carousel = document.getElementById('mobile-card-carousel');
+    if (!carousel) return;
+    
+    carousel.innerHTML = '';
+    
+    const hand = gameState.hands.bottom;
+    hand.forEach(card => {
+        const cardEl = createCardElement(card, true);
+        
+        const isSelected = gameState.selectedCardsToPass.some(
+            c => getCardId(c) === getCardId(card)
+        );
+        
+        if (isSelected) {
+            cardEl.classList.add('selected');
+        }
+        
+        cardEl.addEventListener('click', () => {
+            mobileSelectCard(card);
+        });
+        
+        carousel.appendChild(cardEl);
+    });
+    
+    updateMobilePickerUI();
+}
+
+function mobileSelectCard(card) {
+    const cardId = getCardId(card);
+    const idx = gameState.selectedCardsToPass.findIndex(c => getCardId(c) === cardId);
+    
+    if (idx >= 0) {
+        gameState.selectedCardsToPass.splice(idx, 1);
+    } else if (gameState.selectedCardsToPass.length < 3) {
+        gameState.selectedCardsToPass.push(card);
+    }
+    
+    renderMobileCardCarousel();
+    renderPlayerHand('bottom');
+    updateMobileSelectionPreview();
+    
+    // Also update the regular pass modal in case it's visible
+    updatePassModal();
+}
+
+function updateMobilePickerUI() {
+    const countEl = document.getElementById('mobile-picker-count');
+    const confirmBtn = document.getElementById('btn-picker-confirm');
+    
+    if (countEl) {
+        countEl.textContent = `${gameState.selectedCardsToPass.length} / 3`;
+    }
+    
+    if (confirmBtn) {
+        confirmBtn.disabled = gameState.selectedCardsToPass.length !== 3;
+    }
+}
+
+function updateMobileSelectionPreview() {
+    const preview = document.getElementById('mobile-selection-preview');
+    if (!preview) return;
+    
+    if (gameState.selectedCardsToPass.length === 0) {
+        preview.classList.add('hidden');
+        return;
+    }
+    
+    preview.classList.remove('hidden');
+    preview.innerHTML = '';
+    
+    gameState.selectedCardsToPass.forEach(card => {
+        const cardEl = createCardElement(card, true);
+        preview.appendChild(cardEl);
+    });
+}
+
+function clearMobileSelection() {
+    gameState.selectedCardsToPass = [];
+    renderMobileCardCarousel();
+    renderPlayerHand('bottom');
+    updateMobileSelectionPreview();
+    updatePassModal();
+}
+
+function confirmMobilePass() {
+    if (gameState.selectedCardsToPass.length !== 3) return;
+    
+    hideMobileCardPicker();
+    
+    // Use multiplayer or solo confirm based on mode
+    if (typeof isMultiplayer !== 'undefined' && isMultiplayer) {
+        if (typeof multiplayerConfirmPass === 'function') {
+            multiplayerConfirmPass();
+            return;
+        }
+    }
+    confirmPass();
+}
+
+// Setup mobile picker event listeners
+function setupMobileCardPicker() {
+    const selectBtn = document.getElementById('mobile-select-btn');
+    const clearBtn = document.getElementById('btn-picker-clear');
+    const confirmBtn = document.getElementById('btn-picker-confirm');
+    const receivedIndicator = document.getElementById('mobile-received-indicator');
+    
+    selectBtn?.addEventListener('click', showMobileCardPicker);
+    clearBtn?.addEventListener('click', clearMobileSelection);
+    confirmBtn?.addEventListener('click', confirmMobilePass);
+    
+    // Mobile received cards indicator - scroll to received cards area
+    receivedIndicator?.addEventListener('click', () => {
+        const receivedArea = document.getElementById('received-cards-area');
+        if (receivedArea) {
+            receivedArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+    
+    // Close picker when clicking outside (on background)
+    document.getElementById('mobile-card-picker')?.addEventListener('click', (e) => {
+        if (e.target.id === 'mobile-card-picker') {
+            // Don't close, but could add a minimize option
+        }
+    });
+}
+
+// =====================
 // Event Listeners
 // =====================
 
 document.addEventListener('DOMContentLoaded', () => {
     setupTableDrop();
+    setupMobileCardPicker();
     
     document.getElementById('btn-confirm-pass').addEventListener('click', () => {
         // Check if multiplayer mode

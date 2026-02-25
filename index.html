@@ -83,6 +83,13 @@
 
         <!-- Received Cards Area (left side) -->
         <div class="received-cards-area" id="received-cards-area" style="display: none;"></div>
+        
+        <!-- Mobile Received Cards Indicator -->
+        <div class="mobile-received-indicator hidden" id="mobile-received-indicator">
+            <span class="received-icon">📥</span>
+            <span class="received-count" id="mobile-received-count">3</span>
+            <span class="received-text">cards received</span>
+        </div>
 
         <!-- Bottom Player (Human) -->
         <div class="player-area player-bottom" id="player-bottom">
@@ -199,6 +206,23 @@
 
         <!-- Card Animation Layer -->
         <div class="card-animation-layer" id="card-animation-layer"></div>
+
+        <!-- Mobile Card Picker (for card passing on mobile) -->
+        <button class="mobile-select-cards-btn hidden" id="mobile-select-btn">📤 Select Cards to Pass</button>
+        <div class="mobile-pass-direction hidden" id="mobile-pass-direction">Passing to: Right</div>
+        <div class="mobile-selection-preview hidden" id="mobile-selection-preview"></div>
+        
+        <div class="mobile-card-picker" id="mobile-card-picker">
+            <div class="mobile-card-picker-header">
+                <span class="mobile-card-picker-title">Select 3 cards to pass</span>
+                <span class="mobile-card-picker-count" id="mobile-picker-count">0 / 3</span>
+            </div>
+            <div class="mobile-card-carousel" id="mobile-card-carousel"></div>
+            <div class="mobile-card-picker-actions">
+                <button class="btn-picker-action btn-picker-clear" id="btn-picker-clear">Clear</button>
+                <button class="btn-picker-action btn-picker-confirm" id="btn-picker-confirm" disabled>Confirm Pass</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

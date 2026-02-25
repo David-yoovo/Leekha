@@ -1071,27 +1071,606 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+    body {
+        overflow: auto;
+    }
+    
+    .game-container {
+        min-height: 100vh;
+        height: auto;
+    }
+    
     .card {
         width: 50px;
         height: 70px;
     }
     
+    .card-corner {
+        font-size: 0.7rem;
+    }
+    
+    .card-center {
+        font-size: 1.4rem;
+    }
+    
+    .table-center {
+        width: 200px;
+        height: 200px;
+    }
+    
     .table-surface {
-        width: 180px;
-        height: 180px;
+        width: 160px;
+        height: 160px;
+        border-width: 5px;
     }
     
     .table-card .card {
+        width: 40px;
+        height: 56px;
+    }
+    
+    .player-bottom .card {
+        margin: 0 -12px;
+    }
+    
+    .player-top .card {
+        margin: 0 -18px;
+    }
+    
+    .player-left .card, .player-right .card {
+        margin: -22px 0;
+        width: 40px;
+        height: 56px;
+    }
+    
+    .scoreboard {
+        font-size: 0.7rem;
+        padding: 8px;
+        max-width: 110px;
+    }
+    
+    .scoreboard h2 {
+        font-size: 0.9rem;
+    }
+    
+    .score-item {
+        gap: 10px;
+    }
+    
+    .current-player-info {
+        display: none;
+    }
+    
+    .game-status {
+        font-size: 0.8rem;
+        padding: 8px 15px;
+        max-width: 60%;
+        white-space: normal;
+        text-align: center;
+    }
+    
+    .sound-toggle {
+        transform: translateX(80px);
+    }
+    
+    .btn-sound, .btn-music {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+    
+    .player-label {
+        font-size: 0.75rem;
+        padding: 3px 10px;
+    }
+    
+    .player-top {
+        top: 80px;
+    }
+    
+    .player-bottom {
+        bottom: 10px;
+    }
+    
+    .player-left {
+        left: 5px;
+    }
+    
+    .player-right {
+        right: 5px;
+    }
+    
+    .taken-cards-stack {
+        bottom: auto;
+        top: 10px;
+        right: auto;
+        left: 50%;
+        transform: translateX(70px);
+    }
+    
+    .stack-label {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+    }
+    
+    .stack-cards {
+        width: 40px;
+        height: 56px;
+    }
+    
+    .stack-card {
+        width: 40px;
+        height: 56px;
+    }
+    
+    /* Modal mobile styles */
+    .modal-content {
+        min-width: auto;
+        width: 95%;
+        max-width: 350px;
+        padding: 20px 15px;
+    }
+    
+    .modal-content h3 {
+        font-size: 1.2rem;
+    }
+    
+    /* Pass modal - bottom sheet on mobile */
+    #pass-modal {
+        align-items: flex-end;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    
+    #pass-modal .modal-content {
+        border-radius: 20px 20px 0 0;
+        width: 100%;
+        max-width: 100%;
+        padding-bottom: 30px;
+    }
+    
+    .selected-cards {
+        gap: 5px;
+        min-height: 80px;
+    }
+    
+    .selected-cards .card {
+        width: 50px;
+        height: 70px;
+    }
+    
+    .btn-confirm {
+        padding: 10px 25px;
+        font-size: 0.9rem;
+    }
+    
+    /* Mode buttons */
+    .mode-buttons {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .btn-mode {
+        padding: 20px 25px;
+        min-width: 100%;
+    }
+    
+    .mode-icon {
+        font-size: 2rem;
+    }
+    
+    /* Lobby */
+    .lobby-content {
+        width: 95%;
+    }
+    
+    /* Received cards - mobile positioning */
+    .received-cards-area {
+        bottom: 100px;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        flex-direction: row !important;
+        padding: 10px;
+    }
+    
+    .received-cards-area.from-right,
+    .received-cards-area.from-left {
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+    }
+    
+    .received-card {
+        width: 50px;
+        height: 70px;
+        margin-left: -10px;
+    }
+    
+    .received-cards-area.from-right .received-card {
+        margin-left: -10px;
+        margin-right: 0;
+    }
+    
+    /* Taken cards viewer */
+    .taken-cards-viewer {
+        max-height: 70vh;
+    }
+    
+    .taken-cards-grid {
+        padding: 10px;
+        gap: 8px;
+    }
+    
+    .taken-cards-grid .card {
         width: 45px;
-        height: 65px;
+        height: 63px;
+    }
+    
+    /* Mobile Received Cards Indicator */
+    .mobile-received-indicator {
+        position: fixed;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #4a8a6a 0%, #2d5a4a 100%);
+        border: 2px solid #ffd700;
+        border-radius: 25px;
+        padding: 10px 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 200;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        animation: bounceIn 0.5s ease;
+    }
+    
+    .mobile-received-indicator.hidden {
+        display: none;
+    }
+    
+    .mobile-received-indicator .received-icon {
+        font-size: 1.3rem;
+    }
+    
+    .mobile-received-indicator .received-count {
+        background: #ffd700;
+        color: #1a1a1a;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+    
+    .mobile-received-indicator .received-text {
+        color: #fff;
+        font-size: 0.85rem;
+    }
+    
+    @keyframes bounceIn {
+        0% { transform: translateX(-50%) scale(0); }
+        50% { transform: translateX(-50%) scale(1.15); }
+        100% { transform: translateX(-50%) scale(1); }
+    }
+}
+
+/* Mobile Card Carousel for passing phase */
+.mobile-card-picker {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-card-picker {
+        display: block;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 100%);
+        z-index: 1100;
+        padding: 15px 10px 25px;
+        border-radius: 20px 20px 0 0;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .mobile-card-picker.active {
+        transform: translateY(0);
+    }
+    
+    .mobile-card-picker-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding: 0 5px;
+    }
+    
+    .mobile-card-picker-title {
+        color: #ffd700;
+        font-size: 0.9rem;
+        font-weight: bold;
+    }
+    
+    .mobile-card-picker-count {
+        color: #aaa;
+        font-size: 0.8rem;
+    }
+    
+    .mobile-card-carousel {
+        display: flex;
+        overflow-x: auto;
+        gap: 8px;
+        padding: 10px 5px;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    
+    .mobile-card-carousel::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .mobile-card-carousel .card {
+        flex-shrink: 0;
+        width: 65px;
+        height: 91px;
+        scroll-snap-align: center;
+        margin: 0;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .mobile-card-carousel .card.selected {
+        transform: translateY(-15px) scale(1.05);
+        box-shadow: 0 0 20px #ffd700;
+        border: 3px solid #ffd700;
+    }
+    
+    .mobile-card-picker-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        justify-content: center;
+    }
+    
+    .btn-picker-action {
+        padding: 12px 25px;
+        border-radius: 25px;
+        border: none;
+        font-size: 0.9rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-picker-confirm {
+        background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+        color: #1a1a1a;
+    }
+    
+    .btn-picker-confirm:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .btn-picker-clear {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Hide standard pass modal on mobile when picker is active */
+    .mobile-card-picker.active ~ #pass-modal {
+        display: none !important;
+    }
+    
+    /* Mobile trigger button for card selection */
+    .mobile-select-cards-btn {
+        display: block;
+        position: fixed;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+        color: #1a1a1a;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 25px;
+        font-size: 0.95rem;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 1050;
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        animation: pulseBtn 2s infinite;
+    }
+    
+    .mobile-select-cards-btn.hidden {
+        display: none;
+    }
+    
+    @keyframes pulseBtn {
+        0%, 100% { box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4); }
+        50% { box-shadow: 0 4px 25px rgba(255, 215, 0, 0.7); }
+    }
+    
+    /* Show pass direction indicator on mobile */
+    .mobile-pass-direction {
+        position: fixed;
+        bottom: 140px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 8px 15px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        z-index: 1040;
+    }
+    
+    .mobile-pass-direction.hidden {
+        display: none;
+    }
+    
+    /* Selection preview on mobile */
+    .mobile-selection-preview {
+        position: fixed;
+        bottom: 180px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 5px;
+        z-index: 1045;
+    }
+    
+    .mobile-selection-preview.hidden {
+        display: none;
+    }
+    
+    .mobile-selection-preview .card {
+        width: 35px;
+        height: 49px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    
+    .mobile-selection-preview .card .card-corner {
+        font-size: 0.5rem;
+    }
+    
+    .mobile-selection-preview .card .card-center {
+        font-size: 0.9rem;
+    }
+    
+    /* When in passing phase, hide original player-bottom hand on mobile */
+    body.mobile-passing-phase .player-bottom {
+        opacity: 0.3;
+        pointer-events: none;
+    }
+    
+    /* Mobile touch-friendly playable cards */
+    .player-bottom .card.playable {
+        position: relative;
+    }
+    
+    .player-bottom .card.playable::after {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: -5px;
+        right: -5px;
+        bottom: -10px;
+        background: transparent;
+        z-index: -1;
+    }
+    
+    /* Active state for touch feedback */
+    .player-bottom .card.playable:active {
+        transform: translateY(-15px) scale(0.95);
+        transition: transform 0.1s;
+    }
+    
+    .mobile-card-carousel .card:active {
+        transform: scale(0.95);
+        transition: transform 0.1s;
+    }
+    
+    .mobile-card-carousel .card.selected:active {
+        transform: translateY(-15px) scale(0.95);
+    }
+    
+    /* Better touch targets for buttons */
+    .btn-confirm,
+    .btn-picker-action {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Small phone screens */
+@media (max-width: 480px) {
+    .card {
+        width: 42px;
+        height: 59px;
+    }
+    
+    .card-corner {
+        font-size: 0.6rem;
+    }
+    
+    .card-center {
+        font-size: 1.2rem;
     }
     
     .player-bottom .card {
         margin: 0 -10px;
     }
     
+    .player-top .card {
+        margin: 0 -16px;
+    }
+    
+    .player-left .card, .player-right .card {
+        margin: -20px 0;
+        width: 35px;
+        height: 49px;
+    }
+    
+    .table-center {
+        width: 160px;
+        height: 160px;
+    }
+    
+    .table-surface {
+        width: 130px;
+        height: 130px;
+    }
+    
+    .table-card .card {
+        width: 35px;
+        height: 49px;
+    }
+    
+    .mobile-card-carousel .card {
+        width: 55px;
+        height: 77px;
+    }
+    
     .scoreboard {
+        max-width: 95px;
+        padding: 6px;
+    }
+    
+    .scoreboard h2 {
         font-size: 0.8rem;
-        padding: 10px;
+        margin-bottom: 5px;
+    }
+    
+    .score-item {
+        font-size: 0.65rem;
+        gap: 5px;
+    }
+    
+    .game-status {
+        font-size: 0.7rem;
+        padding: 6px 12px;
+    }
+    
+    .mobile-select-cards-btn {
+        bottom: 85px;
+        padding: 10px 20px;
+        font-size: 0.85rem;
+    }
+    
+    .mobile-pass-direction {
+        bottom: 125px;
+        font-size: 0.75rem;
+    }
+    
+    .mobile-selection-preview {
+        bottom: 160px;
     }
 }
