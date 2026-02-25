@@ -19,7 +19,7 @@ class GameState {
         this.trickNumber = 0;
         this.roundNumber = 1;
         this.dealerIndex = 0;
-        this.passDirection = 'right';
+        this.passDirection = 'left'; // always counterclockwise
         this.passedCards = {}; // position -> cards[]
         this.receivedCards = {}; // position -> cards[]
         this.collectedCards = {}; // position -> true/false (has player collected all cards?)
@@ -613,8 +613,8 @@ class GameManager {
         if (game.currentTrick.length === 4) {
             setTimeout(() => this.completeTrick(roomId), 1500);
         } else {
-            // Next player
-            const nextIdx = (POSITIONS.indexOf(position) + 1) % 4;
+            // Next player (counterclockwise)
+            const nextIdx = (POSITIONS.indexOf(position) + 3) % 4;
             game.currentPlayer = POSITIONS[nextIdx];
             this.broadcastGameState(roomId, 'turnChanged');
             
@@ -898,7 +898,7 @@ class GameManager {
             
             game.roundNumber++;
             game.dealerIndex = (game.dealerIndex + 1) % 4;
-            game.passDirection = game.passDirection === 'right' ? 'left' : 'right';
+            game.passDirection = 'left'; // always counterclockwise
 
             this.startRound(roomId);
         }
@@ -939,7 +939,7 @@ class GameManager {
             game.scores = { bottom: 0, left: 0, top: 0, right: 0 };
             game.roundNumber = 1;
             game.dealerIndex = 0;
-            game.passDirection = 'right';
+            game.passDirection = 'left'; // always counterclockwise
             
             this.startRound(roomId);
         }
@@ -987,21 +987,52 @@ class GameManager {
         }
     }
 
-    // Handle player disconnect during game
+    // Handle player disconnect during game - replace with bot and continue
     handlePlayerDisconnect(roomId, playerId) {
         const game = this.games.get(roomId);
         if (!game) return;
 
-        // For now, end the game if a player disconnects
-        this.io.to(roomId).emit('playerDisconnected', {
-            message: 'A player disconnected. Game ended.'
+        const position = game.getPositionByPlayerId(playerId);
+        if (!position) return;
+
+        const playerData = game.players.get(playerId);
+        if (!playerData) return;
+
+        // Create bot to replace the player
+        const botId = `bot-${position}`;
+        const botNames = ['Bot Ali', 'Bot Sara', 'Bot Omar'];
+        const botIndex = ['left', 'top', 'right'].indexOf(position);
+        const botName = botNames[botIndex >= 0 ? botIndex : 0];
+
+        // Transfer all game state to the bot
+        game.players.set(botId, {
+            ...playerData,
+            isBot: true,
+            username: botName
+        });
+        game.players.delete(playerId);
+
+        // Notify remaining players
+        this.io.to(roomId).emit('playerReplacedByBot', {
+            position: position,
+            botName: botName,
+            message: `${playerData.username} left. ${botName} is now playing.`
         });
 
-        const room = this.roomManager.getRoom(roomId);
-        if (room) {
-            room.gameInProgress = false;
+        // If it was the bot's turn, make the bot play
+        if (game.currentPlayer === position) {
+            setTimeout(() => {
+                this.executeBotTurn(roomId, botId);
+            }, 1000);
         }
-        this.games.delete(roomId);
+
+        // Check if all humans have left
+        const room = this.roomManager.getRoom(roomId);
+        if (room && room.isEmpty()) {
+            // All humans left, end the game
+            this.games.delete(roomId);
+            this.roomManager.deleteRoom(roomId);
+        }
     }
 
     // Helper to emit to specific player

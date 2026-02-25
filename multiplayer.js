@@ -446,7 +446,9 @@ async function handleMultiplayerGameStart(state) {
         gameState.hands.bottom = state.myHand;
         sortHand('bottom');
         renderAllHands();
-        updateStatus(`Round ${state.roundNumber}: Select 3 cards to pass ${state.passDirection}`);
+        // 'left' passDirection = counterclockwise = pass to RIGHT player
+        const targetSide = state.passDirection === 'left' ? 'right' : 'left';
+        updateStatus(`Round ${state.roundNumber}: Select 3 cards to pass ${targetSide}`);
         showPassModal();
     } finally {
         isHandlingRoundStart = false;
@@ -559,8 +561,8 @@ function handleCardsIncoming(data) {
         locked: !hasPassed // Can't interact until we've passed
     }));
     
-    // Store pass direction for positioning
-    gameState.passDirection = gameState.passDirection || 'right';
+    // Store pass direction for positioning (default: counterclockwise = pass to right)
+    gameState.passDirection = gameState.passDirection || 'left';
     
     // Render the pending received cards (locked if we haven't passed)
     renderPendingReceivedCards();

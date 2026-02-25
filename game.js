@@ -188,7 +188,7 @@ let gameState = {
     leadSuit: null,
     trickNumber: 0,
     roundNumber: 1,
-    passDirection: 'right', // alternates between 'right' and 'left'
+    passDirection: 'left', // always counterclockwise
     selectedCardsToPass: [],
     receivedCards: [], // cards received from other player, not yet added to hand
     gamePhase: 'passing', // 'passing', 'receiving', 'playing', 'trickComplete', 'roundOver', 'gameOver'
@@ -308,7 +308,7 @@ function initGame() {
     gameState.scores = { bottom: 0, left: 0, top: 0, right: 0 };
     gameState.roundNumber = 1;
     gameState.dealerIndex = 0;
-    gameState.passDirection = 'right';
+    gameState.passDirection = 'left'; // always counterclockwise (pass to right player)
     gameState.hands = { bottom: [], left: [], top: [], right: [] };
     
     // Clear all hands display
@@ -627,8 +627,8 @@ function playCard(player, card) {
         gameState.gamePhase = 'trickComplete';
         setTimeout(completeTrick, 1500);
     } else {
-        // Next player
-        const nextIdx = (PLAYERS.indexOf(player) + 1) % 4;
+        // Next player (counterclockwise)
+        const nextIdx = (PLAYERS.indexOf(player) + 3) % 4;
         gameState.currentPlayer = PLAYERS[nextIdx];
         updateStatus(`Trick ${gameState.trickNumber}: ${getPlayerName(gameState.currentPlayer)}'s turn`);
         updateCurrentPlayerIndicator();
@@ -772,7 +772,7 @@ async function nextRound() {
     hideRoundOverModal();
     gameState.roundNumber++;
     gameState.dealerIndex = (gameState.dealerIndex + 1) % 4;
-    gameState.passDirection = gameState.passDirection === 'right' ? 'left' : 'right';
+    gameState.passDirection = 'left'; // Always counterclockwise
     await startRound();
 }
 
@@ -783,7 +783,7 @@ function nextGame() {
     gameState.scores = { bottom: 0, left: 0, top: 0, right: 0 };
     gameState.roundNumber = 1;
     gameState.dealerIndex = 0;
-    gameState.passDirection = 'right';
+    gameState.passDirection = 'left';
     updateScores();
     startGame();
 }
@@ -801,7 +801,7 @@ function newMatch() {
     gameState.hmarLetters = { bottom: '', left: '', top: '', right: '' };
     gameState.roundNumber = 1;
     gameState.dealerIndex = 0;
-    gameState.passDirection = 'right';
+    gameState.passDirection = 'left';
     updateScores();
     startGame();
 }
@@ -1302,7 +1302,9 @@ function setupTableDrop() {
 function showPassModal() {
     const modal = document.getElementById('pass-modal');
     const direction = document.getElementById('pass-direction');
-    direction.textContent = `Passing to your ${gameState.passDirection}`;
+    // 'left' passDirection = counterclockwise = pass to RIGHT player
+    const targetSide = gameState.passDirection === 'left' ? 'right' : 'left';
+    direction.textContent = `Passing to your ${targetSide}`;
     
     modal.classList.add('active');
     renderPassCardsGrid();
@@ -1608,7 +1610,8 @@ function showMobilePassingUI() {
     
     if (passDir) {
         passDir.classList.remove('hidden');
-        passDir.textContent = `Passing to: ${gameState.passDirection === 'right' ? 'Right →' : '← Left'}`;
+        // 'left' passDirection = counterclockwise = pass to RIGHT player
+        passDir.textContent = `Passing to: ${gameState.passDirection === 'left' ? 'Right →' : '← Left'}`;
     }
     
     updateMobileSelectionPreview();

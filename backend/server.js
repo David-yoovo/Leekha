@@ -94,25 +94,35 @@ io.on('connection', (socket) => {
 
     // Game actions
     socket.on('selectCardsToPass', (cardIds) => {
+        const room = roomManager.getRoom(socket.roomId);
+        if (room) room.updateActivity();
         gameManager.handlePassCards(socket.roomId, socket.id, cardIds);
     });
 
     socket.on('cardsCollected', () => {
+        const room = roomManager.getRoom(socket.roomId);
+        if (room) room.updateActivity();
         gameManager.handleCardsCollected(socket.roomId, socket.id);
     });
 
     socket.on('playCard', (cardId) => {
+        const room = roomManager.getRoom(socket.roomId);
+        if (room) room.updateActivity();
         gameManager.handlePlayCard(socket.roomId, socket.id, cardId);
     });
 
     socket.on('nextRound', () => {
         if (socket.roomId) {
+            const room = roomManager.getRoom(socket.roomId);
+            if (room) room.updateActivity();
             gameManager.startNextRound(socket.roomId, socket.id);
         }
     });
 
     socket.on('nextGame', () => {
         if (socket.roomId) {
+            const room = roomManager.getRoom(socket.roomId);
+            if (room) room.updateActivity();
             gameManager.startNextGame(socket.roomId, socket.id);
         }
     });
@@ -134,6 +144,7 @@ io.on('connection', (socket) => {
         if (socket.roomId) {
             const room = roomManager.getRoom(socket.roomId);
             if (room) {
+                room.updateActivity(); // Update activity timestamp
                 roomManager.leaveRoom(socket.roomId, socket.id);
                 socket.leave(socket.roomId);
                 
@@ -144,13 +155,13 @@ io.on('connection', (socket) => {
                     room: room.getState()
                 });
                 
-                // If room is empty or game was in progress, clean up
-                if (room.isEmpty()) {
-                    roomManager.deleteRoom(socket.roomId);
-                } else if (room.gameInProgress) {
-                    // Handle mid-game disconnect
+                // Handle mid-game disconnect - replace with bot
+                if (room.gameInProgress) {
                     gameManager.handlePlayerDisconnect(socket.roomId, socket.id);
                 }
+                
+                // Don't delete room immediately - let cleanup timer handle it
+                // This allows the game to continue with bots
             }
             socket.roomId = null;
         }

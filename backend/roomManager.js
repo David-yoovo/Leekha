@@ -10,12 +10,17 @@ class Room {
         this.maxPlayers = 4;
         this.gameInProgress = false;
         this.createdAt = Date.now();
+        this.lastActivity = Date.now(); // Track last activity for session cleanup
         
         // Add host as first player (bottom position)
         this.addPlayer(hostId, hostUsername, false);
         
         // Fill remaining slots with bots
         this.fillWithBots();
+    }
+
+    updateActivity() {
+        this.lastActivity = Date.now();
     }
     
     fillWithBots() {
@@ -206,6 +211,21 @@ class Room {
 class RoomManager {
     constructor() {
         this.rooms = new Map(); // roomId -> Room
+        this.SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes inactivity timeout
+        
+        // Cleanup inactive rooms every 5 minutes
+        setInterval(() => this.cleanupInactiveRooms(), 5 * 60 * 1000);
+    }
+
+    cleanupInactiveRooms() {
+        const now = Date.now();
+        for (const [roomId, room] of this.rooms) {
+            // Only delete if no humans AND inactive for 30 minutes
+            if (room.isEmpty() && (now - room.lastActivity) > this.SESSION_TIMEOUT) {
+                console.log(`Cleaning up inactive room: ${roomId}`);
+                this.rooms.delete(roomId);
+            }
+        }
     }
 
     generateRoomCode() {
