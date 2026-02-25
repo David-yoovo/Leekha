@@ -12,6 +12,11 @@ let hasPlayedCard = false; // Prevent playing multiple cards in one turn
 let isHandlingRoundStart = false; // Prevent duplicate round handling
 let currentRoundNumber = 0; // Track current round to prevent duplicate handling
 
+// Backend server URL - change this to your deployed backend URL
+const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? '' // Use same origin for local development
+    : 'https://your-backend.railway.app'; // Replace with your Railway/Render URL
+
 // DOM Elements
 const startModal = document.getElementById('start-modal');
 const lobbyModal = document.getElementById('lobby-modal');
@@ -23,7 +28,7 @@ const waitingSection = document.getElementById('waiting-section');
 function connectToServer() {
     if (socket) return;
     
-    socket = io();
+    socket = io(BACKEND_URL || undefined);
     
     socket.on('connect', () => {
         console.log('Connected to server');
