@@ -211,6 +211,9 @@ function backToMenu() {
         myRoomId = '';
     }
     isReady = false;
+    // Reset round tracking for new games
+    currentRoundNumber = 0;
+    isHandlingRoundStart = false;
     updateReadyButton();
     hideLobby();
     startModal.classList.add('active');
@@ -686,6 +689,12 @@ function handleCollectingStarted(state) {
 }
 
 function handleCardsExchanged(state) {
+    // Skip if we're still dealing cards
+    if (isHandlingRoundStart) {
+        console.warn('Ignoring cardsExchanged during round start handling');
+        return;
+    }
+    
     // Clear pending received cards - server handles the final exchange
     pendingReceivedCards = [];
     hasPlayedCard = false; // Reset for playing phase
@@ -763,6 +772,12 @@ function handleCardPlayed(data) {
 }
 
 function handleTurnChanged(state) {
+    // Skip if we're still dealing cards
+    if (isHandlingRoundStart) {
+        console.warn('Ignoring turnChanged during round start handling');
+        return;
+    }
+    
     gameState.currentPlayer = state.currentPlayer;
     gameState.leadSuit = state.leadSuit;
     
@@ -818,6 +833,12 @@ async function handleTrickComplete(data) {
 }
 
 function handleNewTrick(state) {
+    // Skip if we're still dealing cards
+    if (isHandlingRoundStart) {
+        console.warn('Ignoring newTrick during round start handling');
+        return;
+    }
+    
     // Wait for trick animation to complete if still running
     if (isAnimatingTrick) {
         setTimeout(() => handleNewTrick(state), 100);
