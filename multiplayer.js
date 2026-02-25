@@ -13,9 +13,7 @@ let isHandlingRoundStart = false; // Prevent duplicate round handling
 let currentRoundNumber = 0; // Track current round to prevent duplicate handling
 
 // Backend server URL - change this to your deployed backend URL
-const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? '' // Use same origin for local development
-    : 'https://leekha-production.up.railway.app/'; // Replace with your Railway/Render URL
+const BACKEND_URL = ''; // Empty string = same origin (works for Railway full deployment)
 
 // DOM Elements
 const startModal = document.getElementById('start-modal');
@@ -32,6 +30,11 @@ function connectToServer() {
     
     socket.on('connect', () => {
         console.log('Connected to server');
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        showConnectionError();
     });
 
     socket.on('disconnect', () => {

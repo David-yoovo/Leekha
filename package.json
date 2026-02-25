@@ -1,0 +1,17 @@
+{
+  "name": "leekha",
+  "version": "1.0.0",
+  "description": "Leekha card game with multiplayer support",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "cd backend && npx nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
