@@ -7,16 +7,31 @@ const GameManager = require('./gameManager');
 
 const app = express();
 const server = http.createServer(app);
+
+// CORS origins - add your Cloudflare Pages URL here
+const ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://leekha.pages.dev", // Replace with your actual Pages domain
+    /\.pages\.dev$/  // Allow all *.pages.dev subdomains
+];
+
 const io = new Server(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: ALLOWED_ORIGINS,
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
 const PORT = process.env.PORT || 3000;
 
-// Serve static files from parent directory
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
+// Serve static files from parent directory (for local development)
 app.use(express.static(path.join(__dirname, '..')));
 
 // Managers
