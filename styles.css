@@ -372,6 +372,10 @@ body {
     line-height: 1;
 }
 
+.card-rank, .card-suit {
+    display: inline;
+}
+
 .card-corner-top {
     align-self: flex-start;
 }
@@ -614,12 +618,49 @@ body {
     font-size: 1.5rem;
 }
 
+/* Pass cards grid - for selecting cards to pass */
+.pass-cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+    padding: 12px 8px;
+    background: rgba(139, 69, 19, 0.3);
+    border-radius: 12px;
+    margin-bottom: 15px;
+}
+
+.pass-cards-grid .card {
+    width: 50px;
+    height: 70px;
+    margin: 0;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.pass-cards-grid .card:hover {
+    transform: translateY(-5px);
+}
+
+.pass-cards-grid .card.selected {
+    transform: translateY(-10px);
+    box-shadow: 0 0 15px #ffd700;
+    border: 2px solid #ffd700;
+}
+
+.selected-cards-label {
+    color: #aaa;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
 .selected-cards {
     display: flex;
     justify-content: center;
     gap: 10px;
-    margin: 20px 0;
-    min-height: 110px;
+    margin: 10px 0 20px;
+    min-height: 90px;
+    flex-wrap: wrap;
 }
 
 .btn-confirm {
@@ -1081,46 +1122,72 @@ body {
     }
     
     .card {
-        width: 55px;
-        height: 77px;
+        width: 62px;
+        height: 87px;
     }
     
     .card-corner {
-        font-size: 0.75rem;
+        font-size: 0.85rem;
     }
     
     .card-center {
-        font-size: 1.5rem;
+        font-size: 1.7rem;
+    }
+    
+    /* Bottom player cards - taller with vertical layout */
+    .player-bottom .card {
+        width: 58px;
+        height: 95px;
+        margin: 0 -16px;
+    }
+    
+    .player-bottom .card .card-corner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 1;
+        gap: 1px;
+    }
+    
+    .player-bottom .card .card-rank {
+        font-size: 1.1rem;
+        font-weight: bold;
+        display: block;
+    }
+    
+    .player-bottom .card .card-suit {
+        font-size: 0.9rem;
+        display: block;
+    }
+    
+    .player-bottom .card .card-center {
+        font-size: 2rem;
     }
     
     .table-center {
-        width: 240px;
-        height: 240px;
+        width: 260px;
+        height: 260px;
     }
     
     .table-surface {
-        width: 200px;
-        height: 200px;
+        width: 220px;
+        height: 220px;
         border-width: 6px;
     }
     
     .table-card .card {
-        width: 50px;
-        height: 70px;
-    }
-    
-    .player-bottom .card {
-        margin: 0 -12px;
+        width: 55px;
+        height: 77px;
     }
     
     .player-top .card {
-        margin: 0 -18px;
+        margin: 0 -22px;
     }
     
     .player-left .card, .player-right .card {
-        margin: -25px 0;
-        width: 45px;
-        height: 63px;
+        margin: -28px 0;
+        width: 48px;
+        height: 67px;
     }
     
     .scoreboard {
@@ -1215,23 +1282,65 @@ body {
         font-size: 1.2rem;
     }
     
-    /* Pass modal - bottom sheet on mobile */
+    /* Pass modal - centered on mobile with card grid */
     #pass-modal {
-        align-items: flex-end;
+        align-items: center;
         padding-top: 0;
         padding-bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        pointer-events: auto;
     }
     
     #pass-modal .modal-content {
-        border-radius: 20px 20px 0 0;
-        width: 100%;
-        max-width: 100%;
-        padding-bottom: 30px;
+        border-radius: 15px;
+        width: 92%;
+        max-width: 400px;
+        padding: 20px 15px 25px;
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    
+    #pass-modal .modal-content h3 {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    
+    #pass-modal .modal-content p {
+        font-size: 0.85rem;
+        margin-bottom: 15px;
+        color: #aaa;
+    }
+    
+    /* Card selection grid for passing */
+    .pass-cards-grid {
+        padding: 10px 6px;
+        gap: 4px;
+        background: rgba(80, 40, 20, 0.5);
+        border: 2px solid rgba(139, 69, 19, 0.5);
+    }
+    
+    .pass-cards-grid .card {
+        width: 46px;
+        height: 64px;
+    }
+    
+    .pass-cards-grid .card.selected {
+        transform: translateY(-8px) scale(1.05);
+    }
+    
+    .selected-cards-label {
+        display: block;
+        margin-top: 5px;
     }
     
     .selected-cards {
-        gap: 5px;
+        gap: 8px;
         min-height: 80px;
+        flex-wrap: wrap;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        margin-bottom: 15px;
     }
     
     .selected-cards .card {
@@ -1240,8 +1349,9 @@ body {
     }
     
     .btn-confirm {
-        padding: 10px 25px;
-        font-size: 0.9rem;
+        padding: 12px 30px;
+        font-size: 1rem;
+        min-height: 48px;
     }
     
     /* Mode buttons */
@@ -1370,30 +1480,56 @@ body {
 /* Small phone screens */
 @media (max-width: 480px) {
     .card {
-        width: 48px;
-        height: 67px;
+        width: 52px;
+        height: 73px;
     }
     
     .card-corner {
-        font-size: 0.65rem;
+        font-size: 0.7rem;
     }
     
     .card-center {
-        font-size: 1.3rem;
+        font-size: 1.4rem;
     }
     
+    /* Bottom player cards - taller with vertical layout */
     .player-bottom .card {
-        margin: 0 -11px;
+        width: 52px;
+        height: 85px;
+        margin: 0 -14px;
+    }
+    
+    .player-bottom .card .card-corner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        line-height: 1;
+        gap: 1px;
+    }
+    
+    .player-bottom .card .card-rank {
+        font-size: 1rem;
+        font-weight: bold;
+        display: block;
+    }
+    
+    .player-bottom .card .card-suit {
+        font-size: 0.8rem;
+        display: block;
+    }
+    
+    .player-bottom .card .card-center {
+        font-size: 1.8rem;
     }
     
     .player-top .card {
-        margin: 0 -17px;
+        margin: 0 -20px;
     }
     
     .player-left .card, .player-right .card {
-        margin: -22px 0;
-        width: 40px;
-        height: 56px;
+        margin: -25px 0;
+        width: 42px;
+        height: 59px;
     }
     
     .table-center {
@@ -1429,5 +1565,25 @@ body {
     .game-status {
         font-size: 0.7rem;
         padding: 6px 12px;
+    }
+    
+    /* Pass cards grid on small phones */
+    .pass-cards-grid {
+        padding: 8px 5px;
+        gap: 3px;
+    }
+    
+    .pass-cards-grid .card {
+        width: 42px;
+        height: 59px;
+    }
+    
+    .selected-cards .card {
+        width: 40px;
+        height: 56px;
+    }
+    
+    #pass-modal .modal-content {
+        padding: 15px 10px 20px;
     }
 }

@@ -1058,9 +1058,9 @@ function createCardElement(card, showFace = true) {
     if (showFace) {
         const suitClass = `suit-${card.suit}`;
         div.innerHTML = `
-            <div class="card-corner card-corner-top ${suitClass}">${card.rank}${SUIT_SYMBOLS[card.suit]}</div>
+            <div class="card-corner card-corner-top ${suitClass}"><span class="card-rank">${card.rank}</span><span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span></div>
             <div class="card-center ${suitClass}">${SUIT_SYMBOLS[card.suit]}</div>
-            <div class="card-corner card-corner-bottom ${suitClass}">${card.rank}${SUIT_SYMBOLS[card.suit]}</div>
+            <div class="card-corner card-corner-bottom ${suitClass}"><span class="card-rank">${card.rank}</span><span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span></div>
         `;
     } else {
         div.classList.add('card-back');
@@ -1161,9 +1161,9 @@ function renderReceivedCards() {
             const suitClass = `suit-${item.card.suit}`;
             cardEl.classList.add('card', 'revealed');
             cardEl.innerHTML = `
-                <div class="card-corner card-corner-top ${suitClass}">${item.card.rank}${SUIT_SYMBOLS[item.card.suit]}</div>
+                <div class="card-corner card-corner-top ${suitClass}"><span class="card-rank">${item.card.rank}</span><span class="card-suit">${SUIT_SYMBOLS[item.card.suit]}</span></div>
                 <div class="card-center ${suitClass}">${SUIT_SYMBOLS[item.card.suit]}</div>
-                <div class="card-corner card-corner-bottom ${suitClass}">${item.card.rank}${SUIT_SYMBOLS[item.card.suit]}</div>
+                <div class="card-corner card-corner-bottom ${suitClass}"><span class="card-rank">${item.card.rank}</span><span class="card-suit">${SUIT_SYMBOLS[item.card.suit]}</span></div>
             `;
             cardEl.addEventListener('click', () => collectReceivedCard(index));
         } else {
@@ -1305,11 +1305,39 @@ function showPassModal() {
     direction.textContent = `Passing to your ${gameState.passDirection}`;
     
     modal.classList.add('active');
+    renderPassCardsGrid();
     updatePassModal();
 }
 
 function hidePassModal() {
     document.getElementById('pass-modal').classList.remove('active');
+}
+
+function renderPassCardsGrid() {
+    const grid = document.getElementById('pass-cards-grid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    const hand = gameState.hands.bottom;
+    hand.forEach(card => {
+        const cardEl = createCardElement(card, true);
+        
+        const isSelected = gameState.selectedCardsToPass.some(
+            c => getCardId(c) === getCardId(card)
+        );
+        
+        if (isSelected) {
+            cardEl.classList.add('selected');
+        }
+        
+        cardEl.addEventListener('click', () => {
+            selectCardToPass(card);
+            renderPassCardsGrid();
+        });
+        
+        grid.appendChild(cardEl);
+    });
 }
 
 function updatePassModal() {
@@ -1319,7 +1347,12 @@ function updatePassModal() {
     container.innerHTML = '';
     gameState.selectedCardsToPass.forEach(card => {
         const cardEl = createCardElement(card, true);
-        cardEl.style.cursor = 'default';
+        cardEl.style.cursor = 'pointer';
+        // Click to deselect
+        cardEl.addEventListener('click', () => {
+            selectCardToPass(card);
+            renderPassCardsGrid();
+        });
         container.appendChild(cardEl);
     });
     
