@@ -1532,8 +1532,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         confirmPass();
     });
-    document.getElementById('btn-next-round').addEventListener('click', nextRound);
-    document.getElementById('btn-new-game').addEventListener('click', newGame);
+    document.getElementById('btn-next-round').addEventListener('click', () => {
+        // In multiplayer mode, let multiplayer.js handle this via onclick
+        if (typeof isMultiplayer !== 'undefined' && isMultiplayer) {
+            return;
+        }
+        nextRound();
+    });
+    document.getElementById('btn-new-game').addEventListener('click', () => {
+        // In multiplayer mode, let multiplayer.js handle this via onclick
+        if (typeof isMultiplayer !== 'undefined' && isMultiplayer) {
+            return;
+        }
+        newGame();
+    });
     // btn-start-game is now handled by multiplayer.js mode selection
     document.getElementById('taken-cards-stack').addEventListener('click', showTakenCardsModal);
     document.getElementById('btn-close-taken').addEventListener('click', hideTakenCardsModal);
