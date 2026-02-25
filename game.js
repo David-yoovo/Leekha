@@ -176,6 +176,12 @@ let gameState = {
         top: 0,
         right: 0
     },
+    hmarLetters: {
+        bottom: '',
+        left: '',
+        top: '',
+        right: ''
+    },
     currentTrick: [],
     currentPlayer: 'bottom',
     dealerIndex: 0,
@@ -705,31 +711,60 @@ function endRound() {
     
     updateScores();
     
-    // Check if game is over
+    // Check if someone reached 101+ (they lose this game)
     const maxScore = Math.max(...Object.values(gameState.scores));
     if (maxScore >= WINNING_SCORE) {
-        endGame();
+        // Find loser (highest score = they lose the game)
+        let loser = null;
+        let highestScore = -1;
+        for (const player of PLAYERS) {
+            if (gameState.scores[player] > highestScore) {
+                highestScore = gameState.scores[player];
+                loser = player;
+            }
+        }
+        
+        // Add HMAR letter to loser
+        const HMAR = 'HMAR';
+        if (loser && gameState.hmarLetters[loser].length < HMAR.length) {
+            const nextLetterIdx = gameState.hmarLetters[loser].length;
+            gameState.hmarLetters[loser] += HMAR[nextLetterIdx];
+        }
+        
+        // Check if someone completed HMAR (match over)
+        const hmarComplete = PLAYERS.find(p => gameState.hmarLetters[p] === 'HMAR');
+        if (hmarComplete) {
+            endMatch();
+        } else {
+            // Show game over for this game, then start new game
+            showGameOverModal(loser);
+        }
     } else {
         showRoundOverModal();
     }
 }
 
-function endGame() {
-    gameState.gamePhase = 'gameOver';
+function endMatch() {
+    gameState.gamePhase = 'matchOver';
     
     playSound('sound-game-over');
     
-    // Find winner (lowest score)
-    let minScore = Infinity;
+    // Find loser (completed HMAR) and winner (least HMAR letters)
+    let loser = PLAYERS.find(p => gameState.hmarLetters[p] === 'HMAR');
+    let minLetters = 5;
     let winner = null;
     for (const player of PLAYERS) {
-        if (gameState.scores[player] < minScore) {
-            minScore = gameState.scores[player];
+        if (gameState.hmarLetters[player].length < minLetters) {
+            minLetters = gameState.hmarLetters[player].length;
             winner = player;
         }
     }
     
-    showGameOverModal(winner);
+    showMatchOverModal(loser, winner);
+}
+
+function endGame() {
+    // Not used - logic is now in endRound and endMatch
 }
 
 async function nextRound() {
@@ -741,10 +776,29 @@ async function nextRound() {
     await startRound();
 }
 
-function newGame() {
+function nextGame() {
+    // Start next game in the match - reset scores but keep HMAR letters
     playSound('sound-button');
     hideGameOverModal();
     gameState.scores = { bottom: 0, left: 0, top: 0, right: 0 };
+    gameState.roundNumber = 1;
+    gameState.dealerIndex = 0;
+    gameState.passDirection = 'right';
+    updateScores();
+    startGame();
+}
+
+function newGame() {
+    // Alias for nextGame (for compatibility)
+    nextGame();
+}
+
+function newMatch() {
+    // Start completely new match - reset everything including HMAR
+    playSound('sound-button');
+    hideGameOverModal();
+    gameState.scores = { bottom: 0, left: 0, top: 0, right: 0 };
+    gameState.hmarLetters = { bottom: '', left: '', top: '', right: '' };
     gameState.roundNumber = 1;
     gameState.dealerIndex = 0;
     gameState.passDirection = 'right';
@@ -1265,12 +1319,27 @@ function showRoundOverModal() {
     const modal = document.getElementById('round-over-modal');
     const scoresDiv = document.getElementById('round-scores');
     
-    scoresDiv.innerHTML = PLAYERS.map(player => `
-        <div class="score-row">
-            <span>${getPlayerName(player)}</span>
-            <span>+${gameState.roundScores[player]} (Total: ${gameState.scores[player]})</span>
-        </div>
-    `).join('');
+    // Find loser of this round (highest round score)
+    let maxRoundScore = -1;
+    let loser = null;
+    for (const player of PLAYERS) {
+        if (gameState.roundScores[player] > maxRoundScore) {
+            maxRoundScore = gameState.roundScores[player];
+            loser = player;
+        }
+    }
+    
+    scoresDiv.innerHTML = PLAYERS.map(player => {
+        const hmar = gameState.hmarLetters[player] || '';
+        const hmarDisplay = hmar ? ` [${hmar}]` : '';
+        const isLoser = player === loser;
+        return `
+            <div class="score-row ${isLoser ? 'loser' : ''}">
+                <span>${getPlayerName(player)}${hmarDisplay}</span>
+                <span>+${gameState.roundScores[player]} (Total: ${gameState.scores[player]})</span>
+            </div>
+        `;
+    }).join('');
     
     modal.classList.add('active');
 }
@@ -1279,19 +1348,66 @@ function hideRoundOverModal() {
     document.getElementById('round-over-modal').classList.remove('active');
 }
 
-function showGameOverModal(winner) {
+function showGameOverModal(loser) {
+    // Called when someone reaches 101+ but HMAR is not yet complete
     const modal = document.getElementById('game-over-modal');
     const title = document.getElementById('game-over-title');
     const scoresDiv = document.getElementById('final-scores');
+    const newGameBtn = document.getElementById('new-game-btn');
     
-    title.textContent = `${getPlayerName(winner)} Wins!`;
+    const loserName = getPlayerName(loser);
+    const loserHmar = gameState.hmarLetters[loser];
     
-    scoresDiv.innerHTML = PLAYERS.map(player => `
-        <div class="score-row ${player === winner ? 'winner' : ''}">
-            <span>${getPlayerName(player)}</span>
-            <span>${gameState.scores[player]} points</span>
-        </div>
-    `).join('');
+    title.textContent = `${loserName} lost this game! [${loserHmar}]`;
+    
+    scoresDiv.innerHTML = PLAYERS.map(player => {
+        const hmar = gameState.hmarLetters[player] || '';
+        const hmarDisplay = hmar ? ` [${hmar}]` : '';
+        const isLoser = player === loser;
+        return `
+            <div class="score-row ${isLoser ? 'loser' : ''}">
+                <span>${getPlayerName(player)}${hmarDisplay}</span>
+                <span>${gameState.scores[player]} points</span>
+            </div>
+        `;
+    }).join('');
+    
+    // Change button text to "Next Game"
+    if (newGameBtn) {
+        newGameBtn.textContent = 'Next Game';
+        newGameBtn.onclick = nextGame;
+    }
+    
+    modal.classList.add('active');
+}
+
+function showMatchOverModal(loser, winner) {
+    // Called when someone completes HMAR (4 letters)
+    const modal = document.getElementById('game-over-modal');
+    const title = document.getElementById('game-over-title');
+    const scoresDiv = document.getElementById('final-scores');
+    const newGameBtn = document.getElementById('new-game-btn');
+    
+    title.textContent = `${getPlayerName(loser)} is HMAR!`;
+    
+    scoresDiv.innerHTML = PLAYERS.map(player => {
+        const hmar = gameState.hmarLetters[player] || '';
+        const hmarDisplay = hmar ? ` [${hmar}]` : '';
+        const isLoser = player === loser;
+        const isWinner = player === winner;
+        return `
+            <div class="score-row ${isLoser ? 'loser' : ''} ${isWinner ? 'winner' : ''}">
+                <span>${getPlayerName(player)}${hmarDisplay}</span>
+                <span>${isWinner ? '🏆 WINNER' : ''}</span>
+            </div>
+        `;
+    }).join('');
+    
+    // Change button text to "New Match"
+    if (newGameBtn) {
+        newGameBtn.textContent = 'New Match';
+        newGameBtn.onclick = newMatch;
+    }
     
     modal.classList.add('active');
 }

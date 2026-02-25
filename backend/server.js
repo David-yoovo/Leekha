@@ -105,6 +105,12 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('nextGame', () => {
+        if (socket.roomId) {
+            gameManager.startNextGame(socket.roomId, socket.id);
+        }
+    });
+
     // Get room list
     socket.on('getRooms', () => {
         const rooms = roomManager.getAvailableRooms();

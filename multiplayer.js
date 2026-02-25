@@ -146,6 +146,18 @@ function connectToServer() {
         }
     });
 
+    socket.on('matchOver', (data) => {
+        if (data.targetPlayer === socket.id) {
+            handleMatchOver(data);
+        }
+    });
+
+    socket.on('nextGameStatus', (data) => {
+        if (data.targetPlayer === socket.id) {
+            handleNextGameStatus(data);
+        }
+    });
+
     socket.on('playerDisconnected', (data) => {
         alert(data.message);
         backToMenu();
@@ -372,6 +384,7 @@ async function handleMultiplayerGameStart(state) {
     gameState.takenCards = { bottom: [], left: [], top: [], right: [] };
     gameState.scores = state.scores || { bottom: 0, left: 0, top: 0, right: 0 };
     gameState.roundScores = state.roundScores || { bottom: 0, left: 0, top: 0, right: 0 };
+    gameState.hmarLetters = state.hmarLetters || { bottom: '', left: '', top: '', right: '' };
     gameState.passDirection = state.passDirection;
     gameState.currentTrick = [];
     
@@ -762,28 +775,34 @@ function handleNewTrick(state) {
 function handleRoundOver(data) {
     playSound('sound-round-end');
     
-    // Update scores
+    // Update scores and HMAR letters
     for (const pos of ['bottom', 'left', 'top', 'right']) {
         gameState.scores[pos] = data.totalScores[pos];
         gameState.roundScores[pos] = data.roundScores[pos];
+        if (data.hmarLetters) {
+            gameState.hmarLetters[pos] = data.hmarLetters[pos] || '';
+        }
     }
     
     updateScores();
     
-    // Show round over modal with player names
-    showRoundOverModalMultiplayer();
+    // Show round over modal with player names and HMAR
+    showRoundOverModalMultiplayer(data.loser);
 }
 
-function showRoundOverModalMultiplayer() {
+function showRoundOverModalMultiplayer(loser) {
     const modal = document.getElementById('round-over-modal');
     const scoresDiv = document.getElementById('round-scores');
     
     const positions = ['bottom', 'left', 'top', 'right'];
     scoresDiv.innerHTML = positions.map(pos => {
         const name = getMultiplayerPlayerName(pos);
+        const hmar = gameState.hmarLetters[pos] || '';
+        const hmarDisplay = hmar ? ` [${hmar}]` : '';
+        const isLoser = pos === loser;
         return `
-            <div class="score-row">
-                <span>${name}</span>
+            <div class="score-row ${isLoser ? 'loser' : ''}">
+                <span>${name}${hmarDisplay}</span>
                 <span>+${gameState.roundScores[pos]} (Total: ${gameState.scores[pos]})</span>
             </div>
         `;
@@ -817,38 +836,116 @@ function handleNextRoundStatus(data) {
 }
 
 function handleGameOver(data) {
+    // Called when someone reaches 101+ but HMAR is not complete
     playSound('sound-game-over');
     
     for (const pos of ['bottom', 'left', 'top', 'right']) {
-        gameState.scores[pos] = data.finalScores[pos];
+        if (data.hmarLetters) {
+            gameState.hmarLetters[pos] = data.hmarLetters[pos] || '';
+        }
     }
     
     updateScores();
     
-    // Use winner username if available
-    const winnerName = data.winner.username || getMultiplayerPlayerName(data.winner.position);
-    showGameOverModalMultiplayer(winnerName, data.winner.score);
+    const loserName = getMultiplayerPlayerName(data.loser);
+    showGameOverModalMultiplayer(loserName, data.loser, false);
 }
 
-function showGameOverModalMultiplayer(winnerName, winnerScore) {
+function handleMatchOver(data) {
+    // Called when someone completes HMAR (match over)
+    playSound('sound-game-over');
+    
+    for (const pos of ['bottom', 'left', 'top', 'right']) {
+        if (data.hmarLetters) {
+            gameState.hmarLetters[pos] = data.hmarLetters[pos] || '';
+        }
+    }
+    
+    updateScores();
+    
+    const loserName = getMultiplayerPlayerName(data.loser);
+    const winnerName = getMultiplayerPlayerName(data.winner);
+    showMatchOverModalMultiplayer(loserName, data.loser, data.winner);
+}
+
+function handleNextGameStatus(data) {
+    // Update button text while waiting for others
+    const newGameBtn = document.getElementById('new-game-btn');
+    if (newGameBtn && data.youReady) {
+        newGameBtn.textContent = `Waiting for others... (${data.readyCount}/${data.totalPlayers})`;
+        newGameBtn.disabled = true;
+    }
+}
+
+function showGameOverModalMultiplayer(loserName, loserPosition, isMatchOver) {
     const modal = document.getElementById('game-over-modal');
     const title = document.getElementById('game-over-title');
     const scoresDiv = document.getElementById('final-scores');
+    const newGameBtn = document.getElementById('new-game-btn');
     
-    title.textContent = `${winnerName} Wins!`;
+    const loserHmar = gameState.hmarLetters[loserPosition] || '';
+    title.textContent = `${loserName} lost this game! [${loserHmar}]`;
     
     const positions = ['bottom', 'left', 'top', 'right'];
     scoresDiv.innerHTML = positions.map(pos => {
         const name = getMultiplayerPlayerName(pos);
-        const score = gameState.scores[pos];
-        const isWinner = score === winnerScore;
+        const hmar = gameState.hmarLetters[pos] || '';
+        const hmarDisplay = hmar ? ` [${hmar}]` : '';
+        const isLoser = pos === loserPosition;
         return `
-            <div class="score-row ${isWinner ? 'winner' : ''}">
-                <span>${name}</span>
-                <span>${score} points</span>
+            <div class="score-row ${isLoser ? 'loser' : ''}">
+                <span>${name}${hmarDisplay}</span>
+                <span>${gameState.scores[pos]} points</span>
             </div>
         `;
     }).join('');
+    
+    // Change button to "Next Game" for multiplayer
+    if (newGameBtn) {
+        newGameBtn.textContent = 'Next Game';
+        newGameBtn.disabled = false;
+        newGameBtn.onclick = () => {
+            socket.emit('nextGame');
+            newGameBtn.textContent = 'Waiting for others... (1/4)';
+            newGameBtn.disabled = true;
+        };
+    }
+    
+    modal.classList.add('active');
+}
+
+function showMatchOverModalMultiplayer(loserName, loserPosition, winnerPosition) {
+    const modal = document.getElementById('game-over-modal');
+    const title = document.getElementById('game-over-title');
+    const scoresDiv = document.getElementById('final-scores');
+    const newGameBtn = document.getElementById('new-game-btn');
+    
+    title.textContent = `${loserName} is HMAR!`;
+    
+    const positions = ['bottom', 'left', 'top', 'right'];
+    scoresDiv.innerHTML = positions.map(pos => {
+        const name = getMultiplayerPlayerName(pos);
+        const hmar = gameState.hmarLetters[pos] || '';
+        const hmarDisplay = hmar ? ` [${hmar}]` : '';
+        const isLoser = pos === loserPosition;
+        const isWinner = pos === winnerPosition;
+        return `
+            <div class="score-row ${isLoser ? 'loser' : ''} ${isWinner ? 'winner' : ''}">
+                <span>${name}${hmarDisplay}</span>
+                <span>${isWinner ? '🏆 WINNER' : ''}</span>
+            </div>
+        `;
+    }).join('');
+    
+    // Change button to "Back to Lobby" for match over
+    if (newGameBtn) {
+        newGameBtn.textContent = 'Back to Lobby';
+        newGameBtn.disabled = false;
+        newGameBtn.onclick = () => {
+            hideGameOverModal();
+            backToMenu();
+        };
+    }
     
     modal.classList.add('active');
 }

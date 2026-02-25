@@ -24,6 +24,7 @@ class GameState {
         this.receivedCards = {}; // position -> cards[]
         this.collectedCards = {}; // position -> true/false (has player collected all cards?)
         this.readyForNextRound = {}; // position -> true/false (has player clicked next round?)
+        this.hmarLetters = {}; // position -> string (accumulated HMAR letters)
         this.phase = 'waiting'; // 'waiting', 'passing', 'collecting', 'playing', 'trickComplete', 'roundOver', 'gameOver'
         
         // Initialize scores and hands for each position
@@ -36,6 +37,7 @@ class GameState {
             this.receivedCards[pos] = [];
             this.collectedCards[pos] = false;
             this.readyForNextRound[pos] = false;
+            this.hmarLetters[pos] = '';
         }
     }
 
@@ -469,10 +471,41 @@ class GameManager {
             game.scores[pos] += game.roundScores[pos];
         }
 
-        game.phase = 'roundOver';
+        // Check if anyone reached 101+ (game over)
+        const maxScore = Math.max(...POSITIONS.map(pos => game.scores[pos]));
+        
+        if (maxScore >= WINNING_SCORE) {
+            // Find loser (first player to reach 101+)
+            const loserPosition = POSITIONS.find(pos => game.scores[pos] >= WINNING_SCORE);
+            
+            // Add HMAR letter to loser
+            const HMAR = 'HMAR';
+            if (loserPosition && game.hmarLetters[loserPosition].length < HMAR.length) {
+                const nextLetterIdx = game.hmarLetters[loserPosition].length;
+                game.hmarLetters[loserPosition] += HMAR[nextLetterIdx];
+            }
+            
+            // Check if HMAR is complete (match over)
+            if (game.hmarLetters[loserPosition] === 'HMAR') {
+                this.endMatch(roomId);
+            } else {
+                // Game over but match continues
+                this.showGameOver(roomId, loserPosition);
+            }
+        } else {
+            // Regular round over - no one reached 101 yet
+            game.phase = 'roundOver';
+            this.broadcastRoundOver(roomId, null);
+        }
+    }
+    
+    broadcastRoundOver(roomId, loserPosition) {
+        const game = this.games.get(roomId);
+        if (!game) return;
 
         // Broadcast round results to each player with relative positions
         const positionOrder = ['bottom', 'left', 'top', 'right'];
+        const loserActualIdx = loserPosition ? positionOrder.indexOf(loserPosition) : -1;
         
         for (const [playerId, playerData] of game.players) {
             const myPosition = game.getPositionByPlayerId(playerId);
@@ -480,84 +513,101 @@ class GameManager {
             
             const relativeRoundScores = {};
             const relativeTotalScores = {};
+            const relativeHmarLetters = {};
+            const relativeLoser = loserPosition ? positionOrder[(loserActualIdx - myIndex + 4) % 4] : null;
             
             for (let i = 0; i < 4; i++) {
                 const actualPosition = positionOrder[(myIndex + i) % 4];
                 const relativePosition = positionOrder[i];
                 relativeRoundScores[relativePosition] = game.roundScores[actualPosition];
                 relativeTotalScores[relativePosition] = game.scores[actualPosition];
+                relativeHmarLetters[relativePosition] = game.hmarLetters[actualPosition];
             }
             
             this.io.to(roomId).emit('roundOver', {
                 targetPlayer: playerId,
                 roundScores: relativeRoundScores,
-                totalScores: relativeTotalScores
+                totalScores: relativeTotalScores,
+                hmarLetters: relativeHmarLetters,
+                loser: relativeLoser
             });
         }
-
-        // Check for game over
-        const maxScore = Math.max(...Object.values(game.scores));
-        if (maxScore >= WINNING_SCORE) {
-            this.endGame(roomId);
-        }
     }
-
-    endGame(roomId) {
+    
+    showGameOver(roomId, loserPosition) {
         const game = this.games.get(roomId);
         if (!game) return;
 
         game.phase = 'gameOver';
 
-        // Find winner (lowest score)
-        let minScore = Infinity;
-        let winnerPosition = null;
-        for (const pos of POSITIONS) {
-            if (game.scores[pos] < minScore) {
-                minScore = game.scores[pos];
-                winnerPosition = pos;
-            }
-        }
-
-        const winnerId = game.getPlayerIdByPosition(winnerPosition);
-        const winnerData = game.players.get(winnerId);
-        
+        // Broadcast game over (someone reached 101 but HMAR not complete)
         const positionOrder = ['bottom', 'left', 'top', 'right'];
-        const winnerIdx = positionOrder.indexOf(winnerPosition);
+        const loserIdx = positionOrder.indexOf(loserPosition);
 
-        // Send personalized game over to each player
         for (const [playerId, playerData] of game.players) {
             const myPosition = game.getPositionByPlayerId(playerId);
             const myIndex = positionOrder.indexOf(myPosition);
-            const relativeWinner = positionOrder[(winnerIdx - myIndex + 4) % 4];
+            const relativeLoser = positionOrder[(loserIdx - myIndex + 4) % 4];
             
-            const relativeFinalScores = {};
+            const relativeHmarLetters = {};
             for (let i = 0; i < 4; i++) {
                 const actualPosition = positionOrder[(myIndex + i) % 4];
                 const relativePosition = positionOrder[i];
-                relativeFinalScores[relativePosition] = game.scores[actualPosition];
+                relativeHmarLetters[relativePosition] = game.hmarLetters[actualPosition];
             }
             
             this.io.to(roomId).emit('gameOver', {
                 targetPlayer: playerId,
-                winner: {
-                    position: relativeWinner,
-                    username: winnerData?.username,
-                    score: minScore
-                },
-                finalScores: relativeFinalScores
+                loser: relativeLoser,
+                hmarLetters: relativeHmarLetters,
+                isMatchOver: false
             });
         }
+    }
 
-        // Clean up
-        const room = this.roomManager.getRoom(roomId);
-        if (room) {
-            room.gameInProgress = false;
-            // Reset ready states
-            for (const player of room.players.values()) {
-                player.ready = false;
+    endMatch(roomId) {
+        const game = this.games.get(roomId);
+        if (!game) return;
+
+        game.phase = 'matchOver';
+
+        // Find loser (completed HMAR) and winner (least HMAR letters)
+        const loserPosition = POSITIONS.find(pos => game.hmarLetters[pos] === 'HMAR');
+        let minLetters = 5;
+        let winnerPosition = null;
+        for (const pos of POSITIONS) {
+            if (game.hmarLetters[pos].length < minLetters) {
+                minLetters = game.hmarLetters[pos].length;
+                winnerPosition = pos;
             }
         }
-        this.games.delete(roomId);
+
+        const positionOrder = ['bottom', 'left', 'top', 'right'];
+        const loserIdx = positionOrder.indexOf(loserPosition);
+        const winnerIdx = positionOrder.indexOf(winnerPosition);
+
+        // Send personalized match over to each player
+        for (const [playerId, playerData] of game.players) {
+            const myPosition = game.getPositionByPlayerId(playerId);
+            const myIndex = positionOrder.indexOf(myPosition);
+            const relativeLoser = positionOrder[(loserIdx - myIndex + 4) % 4];
+            const relativeWinner = positionOrder[(winnerIdx - myIndex + 4) % 4];
+            
+            const relativeHmarLetters = {};
+            for (let i = 0; i < 4; i++) {
+                const actualPosition = positionOrder[(myIndex + i) % 4];
+                const relativePosition = positionOrder[i];
+                relativeHmarLetters[relativePosition] = game.hmarLetters[actualPosition];
+            }
+            
+            this.io.to(roomId).emit('matchOver', {
+                targetPlayer: playerId,
+                loser: relativeLoser,
+                winner: relativeWinner,
+                hmarLetters: relativeHmarLetters,
+                isMatchOver: true
+            });
+        }
     }
 
     // Start next round (called by client)
@@ -588,6 +638,57 @@ class GameManager {
             game.passDirection = game.passDirection === 'right' ? 'left' : 'right';
 
             this.startRound(roomId);
+        }
+    }
+    
+    // Start next game in the match (after someone hit 101)
+    startNextGame(roomId, playerId) {
+        const game = this.games.get(roomId);
+        if (!game || game.phase !== 'gameOver') return;
+
+        const position = game.getPositionByPlayerId(playerId);
+        if (!position) return;
+
+        // Mark this player as ready
+        game.readyForNextRound[position] = true;
+        console.log(`Player ${position} ready for next game`);
+
+        // Notify all players about who's ready
+        this.broadcastNextGameStatus(roomId);
+
+        // Check if all players are ready
+        const allReady = POSITIONS.every(pos => game.readyForNextRound[pos]);
+        if (allReady) {
+            // Reset ready state
+            for (const pos of POSITIONS) {
+                game.readyForNextRound[pos] = false;
+            }
+            
+            // Reset scores but keep HMAR letters
+            game.scores = { bottom: 0, left: 0, top: 0, right: 0 };
+            game.roundNumber = 1;
+            game.dealerIndex = 0;
+            game.passDirection = 'right';
+            
+            this.startRound(roomId);
+        }
+    }
+    
+    // Broadcast next game readiness status
+    broadcastNextGameStatus(roomId) {
+        const game = this.games.get(roomId);
+        if (!game) return;
+
+        const readyCount = POSITIONS.filter(pos => game.readyForNextRound[pos]).length;
+        
+        for (const [playerId, playerData] of game.players) {
+            const myPosition = game.getPositionByPlayerId(playerId);
+            this.io.to(roomId).emit('nextGameStatus', {
+                targetPlayer: playerId,
+                readyCount: readyCount,
+                totalPlayers: 4,
+                youReady: game.readyForNextRound[myPosition]
+            });
         }
     }
 
@@ -721,12 +822,14 @@ class GameManager {
         const relativeScores = {};
         const relativeRoundScores = {};
         const relativeTakenCards = {};
+        const relativeHmarLetters = {};
         for (let i = 0; i < 4; i++) {
             const actualPosition = positionOrder[(myIndex + i) % 4];
             const relativePosition = positionOrder[i];
             relativeScores[relativePosition] = game.scores[actualPosition];
             relativeRoundScores[relativePosition] = game.roundScores[actualPosition];
             relativeTakenCards[relativePosition] = game.takenCards[actualPosition];
+            relativeHmarLetters[relativePosition] = game.hmarLetters[actualPosition] || '';
         }
         
         // Other players info (relative)
@@ -754,6 +857,7 @@ class GameManager {
             scores: relativeScores,
             roundScores: relativeRoundScores,
             takenCards: relativeTakenCards,
+            hmarLetters: relativeHmarLetters,
             playerNames: playerNames,
             otherPlayers: otherPlayers
         };

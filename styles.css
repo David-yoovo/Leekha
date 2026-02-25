@@ -671,6 +671,11 @@ body {
     border-radius: 5px;
 }
 
+.score-row.loser {
+    background: rgba(255, 50, 50, 0.2);
+    border-radius: 5px;
+}
+
 /* Drag and Drop */
 .card.dragging {
     opacity: 0.8;
