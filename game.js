@@ -1037,8 +1037,9 @@ function renderPlayerHand(player) {
                 }
                 cardEl.addEventListener('click', () => selectCardToPass(card));
             } else if (gameState.gamePhase === 'playing') {
-                // Playing phase
-                const canPlay = canPlayCard(player, card);
+                // Playing phase - check if we already played a card this turn (multiplayer)
+                const alreadyPlayed = typeof hasPlayedCard !== 'undefined' && hasPlayedCard;
+                const canPlay = canPlayCard(player, card) && !alreadyPlayed;
                 if (canPlay) {
                     cardEl.classList.add('playable');
                     cardEl.draggable = true;

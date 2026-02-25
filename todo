@@ -1,0 +1,10 @@
+it seems that a player can pick multiple cards like he can put multiple cards
+especially the player at the end of the turn, since it waits couple seconds to end the turn
+so it must disable the cards first time the user dropped a card
+(done but it must disable the UI too TODO)
+
+instead of saying who wins say who loses like the heighest score if not 101 (its actually not winning but loosing)
+and each time a player loses, it must build this word "HMAR" so player 1 loses the first round, "H" is added to his name
+second time player 2 loses, "H" to his name, if then player 1 loses the 3rd round "HM" etc...
+until the word is completed, it resets again everything...
+ofc make sure this applies for both solo and multiplayer

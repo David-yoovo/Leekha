@@ -8,6 +8,7 @@ let multiplayerNames = {}; // Store player names by position
 let hasPassed = false; // Track if we've confirmed our pass
 let pendingReceivedCards = []; // Cards received before we passed
 let isAnimatingTrick = false; // Prevent race between trick animation and newTrick
+let hasPlayedCard = false; // Prevent playing multiple cards in one turn
 
 // DOM Elements
 const startModal = document.getElementById('start-modal');
@@ -358,6 +359,7 @@ async function handleMultiplayerGameStart(state) {
     // Reset pass state for new round
     hasPassed = false;
     pendingReceivedCards = [];
+    hasPlayedCard = false;
     
     // Store player names
     multiplayerNames = state.playerNames || {};
@@ -636,6 +638,7 @@ function handleCollectingStarted(state) {
 function handleCardsExchanged(state) {
     // Clear pending received cards - server handles the final exchange
     pendingReceivedCards = [];
+    hasPlayedCard = false; // Reset for playing phase
     
     // Update player names if included
     if (state.playerNames) {
@@ -693,6 +696,10 @@ function handleCardPlayed(data) {
 function handleTurnChanged(state) {
     gameState.currentPlayer = state.currentPlayer;
     gameState.leadSuit = state.leadSuit;
+    
+    // Reset played card flag when turn changes (allows new play when it's our turn again)
+    hasPlayedCard = false;
+    
     const playerName = getMultiplayerPlayerName(state.currentPlayer);
     updateStatus(`Trick ${state.trickNumber}: ${playerName}'s turn`);
     updateCurrentPlayerIndicator();
@@ -739,6 +746,9 @@ function handleNewTrick(state) {
     gameState.leadSuit = null;
     gameState.currentTrick = [];
     gameState.gamePhase = 'playing';
+    
+    // Reset played card flag for new trick
+    hasPlayedCard = false;
     
     // Table should already be cleared by handleTrickComplete animation
     
@@ -883,11 +893,18 @@ function multiplayerConfirmPass() {
 function multiplayerPlayCard(player, card) {
     if (!isMultiplayer) return false;
     if (player !== 'bottom') return false;
+    if (hasPlayedCard) return true; // Already played a card this turn, block
+    
+    // Mark that we've played a card - prevents double plays
+    hasPlayedCard = true;
     
     // Just send to server - don't remove card locally
     // Server will broadcast cardPlayed which will update UI
     const cardId = `${card.rank}-${card.suit}`;
     socket.emit('playCard', cardId);
+    
+    // Immediately re-render hand to disable all cards visually
+    renderPlayerHand('bottom');
     
     return true; // Handled - prevent solo mode logic
 }
