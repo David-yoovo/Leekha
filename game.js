@@ -1304,20 +1304,12 @@ function showPassModal() {
     const direction = document.getElementById('pass-direction');
     direction.textContent = `Passing to your ${gameState.passDirection}`;
     
-    // On mobile, show the mobile UI instead
-    if (isMobileDevice()) {
-        showMobilePassingUI();
-        // Don't show the desktop modal on mobile
-        return;
-    }
-    
     modal.classList.add('active');
     updatePassModal();
 }
 
 function hidePassModal() {
     document.getElementById('pass-modal').classList.remove('active');
-    hideMobileCardPicker();
 }
 
 function updatePassModal() {
