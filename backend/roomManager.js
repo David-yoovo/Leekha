@@ -1,44 +1,134 @@
 const { v4: uuidv4 } = require('uuid');
 
+const BOT_NAMES = ['Bot Ali', 'Bot Sara', 'Bot Omar'];
+
 class Room {
     constructor(id, hostId, hostUsername) {
         this.id = id;
         this.hostId = hostId;
-        this.players = new Map(); // playerId -> { username, ready, position }
+        this.players = new Map(); // playerId -> { username, ready, position, isBot }
         this.maxPlayers = 4;
         this.gameInProgress = false;
         this.createdAt = Date.now();
         
-        // Add host as first player
-        this.addPlayer(hostId, hostUsername);
+        // Add host as first player (bottom position)
+        this.addPlayer(hostId, hostUsername, false);
+        
+        // Fill remaining slots with bots
+        this.fillWithBots();
+    }
+    
+    fillWithBots() {
+        const positions = ['bottom', 'left', 'top', 'right'];
+        const takenPositions = Array.from(this.players.values()).map(p => p.position);
+        let botIndex = 0;
+        
+        for (const pos of positions) {
+            if (!takenPositions.includes(pos)) {
+                const botId = `bot-${pos}`;
+                const botName = BOT_NAMES[botIndex % BOT_NAMES.length];
+                this.players.set(botId, {
+                    username: botName,
+                    ready: true, // Bots are always ready
+                    position: pos,
+                    isBot: true
+                });
+                botIndex++;
+            }
+        }
     }
 
-    addPlayer(playerId, username) {
-        if (this.players.size >= this.maxPlayers) {
+    addPlayer(playerId, username, isBot = false) {
+        if (this.getHumanCount() >= this.maxPlayers) {
             return false;
         }
         
-        // Assign position: bottom, left, top, right
+        // If not a bot, find a bot to replace
+        if (!isBot) {
+            const positions = ['left', 'top', 'right']; // Don't replace bottom (host)
+            for (const pos of positions) {
+                const botId = `bot-${pos}`;
+                if (this.players.has(botId)) {
+                    // Replace this bot with the human
+                    this.players.delete(botId);
+                    this.players.set(playerId, {
+                        username: username,
+                        ready: false,
+                        position: pos,
+                        isBot: false
+                    });
+                    return true;
+                }
+            }
+            
+            // No bot to replace, check for empty slot (shouldn't happen normally)
+            const takenPositions = Array.from(this.players.values()).map(p => p.position);
+            const availablePosition = ['bottom', 'left', 'top', 'right'].find(p => !takenPositions.includes(p));
+            
+            if (availablePosition) {
+                this.players.set(playerId, {
+                    username: username,
+                    ready: false,
+                    position: availablePosition,
+                    isBot: false
+                });
+                return true;
+            }
+            return false;
+        }
+        
+        // Adding a bot (used during room creation)
         const positions = ['bottom', 'left', 'top', 'right'];
         const takenPositions = Array.from(this.players.values()).map(p => p.position);
         const availablePosition = positions.find(p => !takenPositions.includes(p));
         
-        this.players.set(playerId, {
-            username: username,
-            ready: false,
-            position: availablePosition
-        });
-        
-        return true;
+        if (availablePosition) {
+            this.players.set(playerId, {
+                username: username,
+                ready: true,
+                position: availablePosition,
+                isBot: true
+            });
+            return true;
+        }
+        return false;
     }
 
     removePlayer(playerId) {
+        const player = this.players.get(playerId);
+        if (!player || player.isBot) return; // Don't remove bots
+        
+        const position = player.position;
         this.players.delete(playerId);
         
-        // If host left, assign new host
-        if (playerId === this.hostId && this.players.size > 0) {
-            this.hostId = this.players.keys().next().value;
+        // If host left, assign new host (prefer human)
+        if (playerId === this.hostId) {
+            const humans = Array.from(this.players.entries()).filter(([id, p]) => !p.isBot);
+            if (humans.length > 0) {
+                this.hostId = humans[0][0];
+            }
         }
+        
+        // Add a bot to replace the leaving human (unless it was bottom/host position)
+        if (position !== 'bottom' || this.players.size > 0) {
+            const botId = `bot-${position}`;
+            const botIndex = ['left', 'top', 'right'].indexOf(position);
+            const botName = BOT_NAMES[botIndex >= 0 ? botIndex : 0];
+            this.players.set(botId, {
+                username: botName,
+                ready: true,
+                position: position,
+                isBot: true
+            });
+        }
+    }
+    
+    getHumanCount() {
+        return Array.from(this.players.values()).filter(p => !p.isBot).length;
+    }
+    
+    getBotCount() {
+        return Array.from(this.players.values()).filter(p => p.isBot).length;
     }
 
     toggleReady(playerId) {
@@ -52,20 +142,25 @@ class Room {
         if (this.players.size !== this.maxPlayers) return false;
         if (this.gameInProgress) return false;
         
-        // All players must be ready
+        // All human players must be ready (bots are always ready)
         for (const player of this.players.values()) {
-            if (!player.ready) return false;
+            if (!player.isBot && !player.ready) return false;
         }
         
         return true;
     }
 
     isFull() {
+        // Room is "full" only when all 4 slots are humans (no bots to replace)
+        return this.getHumanCount() >= this.maxPlayers;
+    }
+    
+    isFullWithBots() {
         return this.players.size >= this.maxPlayers;
     }
 
     isEmpty() {
-        return this.players.size === 0;
+        return this.getHumanCount() === 0;
     }
 
     getState() {
@@ -76,7 +171,8 @@ class Room {
                 username: data.username,
                 ready: data.ready,
                 position: data.position,
-                isHost: id === this.hostId
+                isHost: id === this.hostId,
+                isBot: data.isBot || false
             });
         }
         
@@ -85,6 +181,7 @@ class Room {
             hostId: this.hostId,
             players,
             playerCount: this.players.size,
+            humanCount: this.getHumanCount(),
             maxPlayers: this.maxPlayers,
             gameInProgress: this.gameInProgress,
             canStart: this.canStart()
@@ -174,8 +271,9 @@ class RoomManager {
                 available.push({
                     id: room.id,
                     hostUsername: room.players.get(room.hostId)?.username || 'Unknown',
-                    playerCount: room.players.size,
-                    maxPlayers: room.maxPlayers
+                    playerCount: room.getHumanCount(),
+                    maxPlayers: room.maxPlayers,
+                    hasBots: room.getBotCount() > 0
                 });
             }
         }

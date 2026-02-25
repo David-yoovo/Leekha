@@ -63,6 +63,22 @@ class GameManager {
         this.games = new Map(); // roomId -> GameState
     }
 
+    // Check if a position is controlled by a bot
+    isBot(game, position) {
+        const playerId = game.getPlayerIdByPosition(position);
+        return playerId && playerId.startsWith('bot-');
+    }
+
+    // Get all bot positions for a game
+    getBotPositions(game) {
+        return POSITIONS.filter(pos => this.isBot(game, pos));
+    }
+
+    // Schedule bot actions with a delay for realism
+    scheduleBotAction(callback, delay = 1000) {
+        setTimeout(callback, delay);
+    }
+
     // Create and shuffle deck
     createDeck() {
         const deck = [];
@@ -123,6 +139,174 @@ class GameManager {
         return points;
     }
 
+    // Bot AI: Select 3 cards to pass
+    botSelectCardsToPass(game, position) {
+        const hand = [...game.hands[position]];
+        
+        // Sort by "danger" - try to pass high cards and penalty cards
+        const cardValue = (card) => {
+            let value = this.getCardValue(card.rank);
+            if (this.isQueenOfSpades(card)) value += 20;
+            if (this.isTenOfDiamonds(card)) value += 15;
+            if (this.isHeart(card)) value += 5;
+            return value;
+        };
+        
+        hand.sort((a, b) => cardValue(b) - cardValue(a));
+        return hand.slice(0, 3);
+    }
+
+    // Bot AI: Select a card to play
+    botSelectCardToPlay(game, position) {
+        const hand = game.hands[position];
+        const playable = this.getPlayableCards(game, position);
+        
+        if (playable.length === 0) return null;
+        if (playable.length === 1) return playable[0];
+        
+        // If leading, play low non-penalty card
+        if (game.currentTrick.length === 0) {
+            return this.botSelectLeadCard(playable);
+        } else {
+            return this.botSelectFollowCard(game, playable);
+        }
+    }
+
+    botSelectLeadCard(playable) {
+        // Prefer non-penalty cards, then lowest value
+        const nonPenalty = playable.filter(c => 
+            !this.isQueenOfSpades(c) && !this.isTenOfDiamonds(c) && !this.isHeart(c)
+        );
+        
+        const choices = nonPenalty.length > 0 ? nonPenalty : playable;
+        choices.sort((a, b) => this.getCardValue(a.rank) - this.getCardValue(b.rank));
+        return choices[0];
+    }
+
+    botSelectFollowCard(game, playable) {
+        const leadSuit = game.leadSuit;
+        const hasLeadSuit = playable.some(c => c.suit === leadSuit);
+        
+        if (hasLeadSuit) {
+            // Try to play under the highest card to avoid taking the trick
+            const leadCards = playable.filter(c => c.suit === leadSuit);
+            const currentHighest = this.findHighestInTrick(game.currentTrick, leadSuit);
+            
+            const safe = leadCards.filter(c => this.getCardValue(c.rank) < currentHighest);
+            if (safe.length > 0) {
+                safe.sort((a, b) => this.getCardValue(b.rank) - this.getCardValue(a.rank));
+                return safe[0]; // Highest safe card
+            }
+            
+            // Must give up and play high
+            leadCards.sort((a, b) => this.getCardValue(a.rank) - this.getCardValue(b.rank));
+            return leadCards[0]; // Lowest card we have
+        } else {
+            // Can't follow - dump penalty cards if possible
+            const penalties = playable.filter(c => 
+                this.isQueenOfSpades(c) || this.isTenOfDiamonds(c) || this.isHeart(c)
+            );
+            
+            if (penalties.length > 0) {
+                // Prefer Q of spades, then 10 of diamonds, then hearts
+                const qos = penalties.find(c => this.isQueenOfSpades(c));
+                if (qos) return qos;
+                
+                const tod = penalties.find(c => this.isTenOfDiamonds(c));
+                if (tod) return tod;
+                
+                // Highest heart
+                const hearts = penalties.filter(c => this.isHeart(c));
+                hearts.sort((a, b) => this.getCardValue(b.rank) - this.getCardValue(a.rank));
+                return hearts[0];
+            }
+            
+            // Dump highest card
+            playable.sort((a, b) => this.getCardValue(b.rank) - this.getCardValue(a.rank));
+            return playable[0];
+        }
+    }
+
+    findHighestInTrick(trick, leadSuit) {
+        let highest = 0;
+        for (const { card } of trick) {
+            if (card.suit === leadSuit) {
+                const value = this.getCardValue(card.rank);
+                if (value > highest) highest = value;
+            }
+        }
+        return highest;
+    }
+
+    getPlayableCards(game, position) {
+        const hand = game.hands[position];
+        if (!game.leadSuit) return [...hand];
+        
+        const hasLeadSuit = hand.some(c => c.suit === game.leadSuit);
+        if (hasLeadSuit) {
+            return hand.filter(c => c.suit === game.leadSuit);
+        }
+        return [...hand];
+    }
+
+    // Execute bot pass for a position
+    executeBotPass(roomId, position) {
+        const game = this.games.get(roomId);
+        if (!game || game.phase !== 'passing') return;
+        
+        const cardsToPass = this.botSelectCardsToPass(game, position);
+        const cardIds = cardsToPass.map(c => this.getCardId(c));
+        const playerId = game.getPlayerIdByPosition(position);
+        
+        // Use the same logic as human pass
+        this.handlePassCardsInternal(roomId, position, cardIds);
+    }
+
+    // Execute bot play for current position
+    executeBotPlay(roomId) {
+        const game = this.games.get(roomId);
+        if (!game || game.phase !== 'playing') return;
+        
+        const position = game.currentPlayer;
+        if (!this.isBot(game, position)) return;
+        
+        const card = this.botSelectCardToPlay(game, position);
+        if (!card) return;
+        
+        const cardId = this.getCardId(card);
+        this.handlePlayCardInternal(roomId, position, cardId);
+    }
+
+    // Check and trigger bot play if needed
+    checkBotTurn(roomId) {
+        const game = this.games.get(roomId);
+        if (!game || game.phase !== 'playing') return;
+        
+        if (this.isBot(game, game.currentPlayer)) {
+            this.scheduleBotAction(() => this.executeBotPlay(roomId), 800 + Math.random() * 700);
+        }
+    }
+
+    // Auto-collect cards for bots
+    botCollectCards(roomId, position) {
+        const game = this.games.get(roomId);
+        if (!game) return;
+        
+        game.collectedCards[position] = true;
+    }
+
+    // Auto-ready for next round/game for bots
+    botReadyForNextRound(roomId) {
+        const game = this.games.get(roomId);
+        if (!game) return;
+        
+        for (const pos of POSITIONS) {
+            if (this.isBot(game, pos)) {
+                game.readyForNextRound[pos] = true;
+            }
+        }
+    }
+
     // Start a new game
     startGame(roomId) {
         const room = this.roomManager.getRoom(roomId);
@@ -164,6 +348,17 @@ class GameManager {
 
         // Notify all players
         this.broadcastGameState(roomId, 'roundStarted');
+        
+        // Schedule bot passes
+        for (const pos of POSITIONS) {
+            if (this.isBot(game, pos)) {
+                // Bots auto-collect since they'll receive cards
+                game.collectedCards[pos] = true;
+                // Schedule bot pass with varying delays
+                const delay = 1000 + Math.random() * 1500;
+                this.scheduleBotAction(() => this.executeBotPass(roomId, pos), delay);
+            }
+        }
     }
 
     dealCards(game) {
@@ -194,7 +389,7 @@ class GameManager {
         });
     }
 
-    // Handle card passing
+    // Handle card passing (from human player)
     handlePassCards(roomId, playerId, cardIds) {
         const game = this.games.get(roomId);
         if (!game || game.phase !== 'passing') return;
@@ -207,12 +402,25 @@ class GameManager {
             return;
         }
 
+        this.handlePassCardsInternal(roomId, position, cardIds);
+    }
+
+    // Internal pass cards logic (works for both humans and bots)
+    handlePassCardsInternal(roomId, position, cardIds) {
+        const game = this.games.get(roomId);
+        if (!game || game.phase !== 'passing') return;
+        
+        const playerId = game.getPlayerIdByPosition(position);
+        const isBot = this.isBot(game, position);
+
         // Find and remove cards from hand
         const cardsToPass = [];
         for (const cardId of cardIds) {
             const idx = game.hands[position].findIndex(c => this.getCardId(c) === cardId);
             if (idx === -1) {
-                this.emitToPlayer(roomId, playerId, 'error', { message: 'Invalid card selection' });
+                if (!isBot) {
+                    this.emitToPlayer(roomId, playerId, 'error', { message: 'Invalid card selection' });
+                }
                 return;
             }
             cardsToPass.push(game.hands[position][idx]);
@@ -227,25 +435,30 @@ class GameManager {
         // Store passed cards
         game.passedCards[position] = cardsToPass;
 
-        // Notify player that their pass was confirmed
-        this.emitToPlayer(roomId, playerId, 'cardsPassedConfirmed', { cards: cardsToPass });
+        // Notify player that their pass was confirmed (only for humans)
+        if (!isBot) {
+            this.emitToPlayer(roomId, playerId, 'cardsPassedConfirmed', { cards: cardsToPass });
+        }
 
-        // Notify the receiving player that cards are coming to them
+        // Notify the receiving player that cards are coming to them (only if they're human)
         const targetPosition = this.getPassTarget(position, game.passDirection);
         const targetPlayerId = game.getPlayerIdByPosition(targetPosition);
+        const targetIsBot = this.isBot(game, targetPosition);
         
-        // Calculate relative position of sender from receiver's perspective
-        const positionOrder = ['bottom', 'left', 'top', 'right'];
-        const senderIdx = positionOrder.indexOf(position);
-        const receiverIdx = positionOrder.indexOf(targetPosition);
-        const relativeSenderPos = positionOrder[(senderIdx - receiverIdx + 4) % 4];
-        
-        this.io.to(roomId).emit('cardsIncoming', {
-            targetPlayer: targetPlayerId,
-            fromPosition: relativeSenderPos,
-            cards: cardsToPass,
-            senderHasPassed: true
-        });
+        if (!targetIsBot) {
+            // Calculate relative position of sender from receiver's perspective
+            const positionOrder = ['bottom', 'left', 'top', 'right'];
+            const senderIdx = positionOrder.indexOf(position);
+            const receiverIdx = positionOrder.indexOf(targetPosition);
+            const relativeSenderPos = positionOrder[(senderIdx - receiverIdx + 4) % 4];
+            
+            this.io.to(targetPlayerId).emit('cardsIncoming', {
+                targetPlayer: targetPlayerId,
+                fromPosition: relativeSenderPos,
+                cards: cardsToPass,
+                senderHasPassed: true
+            });
+        }
 
         // Check if all players have passed
         const allPassed = POSITIONS.every(pos => game.passedCards[pos].length === 3);
@@ -322,6 +535,9 @@ class GameManager {
 
         // Broadcast the exchange complete
         this.broadcastGameState(roomId, 'cardsExchanged');
+        
+        // Check if first player is a bot
+        this.checkBotTurn(roomId);
     }
 
     getPassTarget(position, direction) {
@@ -333,7 +549,7 @@ class GameManager {
         }
     }
 
-    // Handle playing a card
+    // Handle playing a card (from human player)
     handlePlayCard(roomId, playerId, cardId) {
         const game = this.games.get(roomId);
         if (!game || game.phase !== 'playing') return;
@@ -344,6 +560,18 @@ class GameManager {
             return;
         }
 
+        this.handlePlayCardInternal(roomId, position, cardId);
+    }
+
+    // Internal play card logic (works for both humans and bots)
+    handlePlayCardInternal(roomId, position, cardId) {
+        const game = this.games.get(roomId);
+        if (!game || game.phase !== 'playing') return;
+        if (position !== game.currentPlayer) return;
+        
+        const playerId = game.getPlayerIdByPosition(position);
+        const isBot = this.isBot(game, position);
+
         // Find card in hand
         const card = this.parseCardId(cardId);
         const cardIdx = game.hands[position].findIndex(c => 
@@ -351,7 +579,9 @@ class GameManager {
         );
 
         if (cardIdx === -1) {
-            this.emitToPlayer(roomId, playerId, 'error', { message: 'Card not in hand' });
+            if (!isBot) {
+                this.emitToPlayer(roomId, playerId, 'error', { message: 'Card not in hand' });
+            }
             return;
         }
 
@@ -359,7 +589,9 @@ class GameManager {
 
         // Validate play
         if (!this.canPlayCard(game, position, fullCard)) {
-            this.emitToPlayer(roomId, playerId, 'error', { message: 'Invalid card play' });
+            if (!isBot) {
+                this.emitToPlayer(roomId, playerId, 'error', { message: 'Invalid card play' });
+            }
             return;
         }
 
@@ -385,6 +617,9 @@ class GameManager {
             const nextIdx = (POSITIONS.indexOf(position) + 1) % 4;
             game.currentPlayer = POSITIONS[nextIdx];
             this.broadcastGameState(roomId, 'turnChanged');
+            
+            // Check if next player is a bot
+            this.checkBotTurn(roomId);
         }
     }
 
@@ -449,6 +684,9 @@ class GameManager {
                 game.trickNumber++;
                 game.currentPlayer = winner.position;
                 this.broadcastGameState(roomId, 'newTrick');
+                
+                // Check if trick winner is a bot
+                this.checkBotTurn(roomId);
             }, 1500);
         }
     }
@@ -496,6 +734,10 @@ class GameManager {
             // Regular round over - no one reached 101 yet
             game.phase = 'roundOver';
             this.broadcastRoundOver(roomId, null);
+            
+            // Auto-ready bots for next round
+            this.botReadyForNextRound(roomId);
+            this.checkAllReadyForNextRound(roomId);
         }
     }
     
@@ -508,6 +750,9 @@ class GameManager {
         const loserActualIdx = loserPosition ? positionOrder.indexOf(loserPosition) : -1;
         
         for (const [playerId, playerData] of game.players) {
+            // Skip bots
+            if (playerId.startsWith('bot-')) continue;
+            
             const myPosition = game.getPositionByPlayerId(playerId);
             const myIndex = positionOrder.indexOf(myPosition);
             
@@ -524,7 +769,7 @@ class GameManager {
                 relativeHmarLetters[relativePosition] = game.hmarLetters[actualPosition];
             }
             
-            this.io.to(roomId).emit('roundOver', {
+            this.io.to(playerId).emit('roundOver', {
                 targetPlayer: playerId,
                 roundScores: relativeRoundScores,
                 totalScores: relativeTotalScores,
@@ -545,6 +790,9 @@ class GameManager {
         const loserIdx = positionOrder.indexOf(loserPosition);
 
         for (const [playerId, playerData] of game.players) {
+            // Skip bots
+            if (playerId.startsWith('bot-')) continue;
+            
             const myPosition = game.getPositionByPlayerId(playerId);
             const myIndex = positionOrder.indexOf(myPosition);
             const relativeLoser = positionOrder[(loserIdx - myIndex + 4) % 4];
@@ -556,13 +804,17 @@ class GameManager {
                 relativeHmarLetters[relativePosition] = game.hmarLetters[actualPosition];
             }
             
-            this.io.to(roomId).emit('gameOver', {
+            this.io.to(playerId).emit('gameOver', {
                 targetPlayer: playerId,
                 loser: relativeLoser,
                 hmarLetters: relativeHmarLetters,
                 isMatchOver: false
             });
         }
+        
+        // Auto-ready bots for next game
+        this.botReadyForNextRound(roomId);
+        this.checkAllReadyForNextGame(roomId);
     }
 
     endMatch(roomId) {
@@ -588,6 +840,9 @@ class GameManager {
 
         // Send personalized match over to each player
         for (const [playerId, playerData] of game.players) {
+            // Skip bots
+            if (playerId.startsWith('bot-')) continue;
+            
             const myPosition = game.getPositionByPlayerId(playerId);
             const myIndex = positionOrder.indexOf(myPosition);
             const relativeLoser = positionOrder[(loserIdx - myIndex + 4) % 4];
@@ -600,7 +855,7 @@ class GameManager {
                 relativeHmarLetters[relativePosition] = game.hmarLetters[actualPosition];
             }
             
-            this.io.to(roomId).emit('matchOver', {
+            this.io.to(playerId).emit('matchOver', {
                 targetPlayer: playerId,
                 loser: relativeLoser,
                 winner: relativeWinner,
@@ -626,6 +881,14 @@ class GameManager {
         this.broadcastNextRoundStatus(roomId);
 
         // Check if all players are ready
+        this.checkAllReadyForNextRound(roomId);
+    }
+    
+    // Check if all players ready and start next round
+    checkAllReadyForNextRound(roomId) {
+        const game = this.games.get(roomId);
+        if (!game || game.phase !== 'roundOver') return;
+        
         const allReady = POSITIONS.every(pos => game.readyForNextRound[pos]);
         if (allReady) {
             // Reset ready state for next time
@@ -657,6 +920,14 @@ class GameManager {
         this.broadcastNextGameStatus(roomId);
 
         // Check if all players are ready
+        this.checkAllReadyForNextGame(roomId);
+    }
+    
+    // Check if all players ready and start next game
+    checkAllReadyForNextGame(roomId) {
+        const game = this.games.get(roomId);
+        if (!game || game.phase !== 'gameOver') return;
+        
         const allReady = POSITIONS.every(pos => game.readyForNextRound[pos]);
         if (allReady) {
             // Reset ready state
@@ -682,8 +953,11 @@ class GameManager {
         const readyCount = POSITIONS.filter(pos => game.readyForNextRound[pos]).length;
         
         for (const [playerId, playerData] of game.players) {
+            // Skip bots
+            if (playerId.startsWith('bot-')) continue;
+            
             const myPosition = game.getPositionByPlayerId(playerId);
-            this.io.to(roomId).emit('nextGameStatus', {
+            this.io.to(playerId).emit('nextGameStatus', {
                 targetPlayer: playerId,
                 readyCount: readyCount,
                 totalPlayers: 4,
@@ -700,8 +974,11 @@ class GameManager {
         const readyCount = POSITIONS.filter(pos => game.readyForNextRound[pos]).length;
         
         for (const [playerId, playerData] of game.players) {
+            // Skip bots
+            if (playerId.startsWith('bot-')) continue;
+            
             const myPosition = game.getPositionByPlayerId(playerId);
-            this.io.to(roomId).emit('nextRoundStatus', {
+            this.io.to(playerId).emit('nextRoundStatus', {
                 targetPlayer: playerId,
                 readyCount: readyCount,
                 totalPlayers: 4,
@@ -729,7 +1006,8 @@ class GameManager {
 
     // Helper to emit to specific player
     emitToPlayer(roomId, playerId, event, data) {
-        this.io.to(roomId).emit(event, { ...data, targetPlayer: playerId });
+        // Emit directly to the player's socket
+        this.io.to(playerId).emit(event, { ...data, targetPlayer: playerId });
     }
 
     // Broadcast game state to all players
@@ -737,10 +1015,14 @@ class GameManager {
         const game = this.games.get(roomId);
         if (!game) return;
 
-        // Send personalized state to each player (hiding other hands)
+        // Send personalized state to each HUMAN player (hiding other hands)
         for (const [playerId, playerData] of game.players) {
+            // Skip bots - they don't have sockets
+            if (playerId.startsWith('bot-')) continue;
+            
             const personalState = this.getPersonalizedState(game, playerId);
-            this.io.to(roomId).emit(event, {
+            // IMPORTANT: emit to the individual player socket, not the whole room
+            this.io.to(playerId).emit(event, {
                 targetPlayer: playerId,
                 state: personalState
             });
@@ -756,11 +1038,15 @@ class GameManager {
         const actualIdx = positionOrder.indexOf(actualPosition);
 
         for (const [playerId, playerData] of game.players) {
+            // Skip bots
+            if (playerId.startsWith('bot-')) continue;
+            
             const myPosition = game.getPositionByPlayerId(playerId);
             const myIndex = positionOrder.indexOf(myPosition);
             const relativePosition = positionOrder[(actualIdx - myIndex + 4) % 4];
 
-            this.io.to(roomId).emit('cardPlayed', {
+            // Emit to individual player socket
+            this.io.to(playerId).emit('cardPlayed', {
                 targetPlayer: playerId,
                 position: relativePosition,
                 card: card
@@ -777,11 +1063,15 @@ class GameManager {
         const winnerIdx = positionOrder.indexOf(winnerPosition);
 
         for (const [playerId, playerData] of game.players) {
+            // Skip bots
+            if (playerId.startsWith('bot-')) continue;
+            
             const myPosition = game.getPositionByPlayerId(playerId);
             const myIndex = positionOrder.indexOf(myPosition);
             const relativeWinner = positionOrder[(winnerIdx - myIndex + 4) % 4];
 
-            this.io.to(roomId).emit('trickComplete', {
+            // Emit to individual player socket
+            this.io.to(playerId).emit('trickComplete', {
                 targetPlayer: playerId,
                 winner: relativeWinner,
                 points: points,

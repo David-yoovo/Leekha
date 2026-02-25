@@ -9,6 +9,8 @@ let hasPassed = false; // Track if we've confirmed our pass
 let pendingReceivedCards = []; // Cards received before we passed
 let isAnimatingTrick = false; // Prevent race between trick animation and newTrick
 let hasPlayedCard = false; // Prevent playing multiple cards in one turn
+let isHandlingRoundStart = false; // Prevent duplicate round handling
+let currentRoundNumber = 0; // Track current round to prevent duplicate handling
 
 // DOM Elements
 const startModal = document.getElementById('start-modal');
@@ -226,14 +228,15 @@ function updatePlayersUI(room) {
     for (const pos of positions) {
         const player = room.players.find(p => p.position === pos);
         const slot = document.createElement('div');
-        slot.className = `player-slot ${player ? 'filled' : 'empty'}`;
+        slot.className = `player-slot ${player ? 'filled' : 'empty'} ${player?.isBot ? 'bot' : ''}`;
         
         if (player) {
             const isMe = player.id === socket.id;
+            const isBot = player.isBot;
             slot.innerHTML = `
                 <div class="player-info">
                     <span class="position-badge">${positionLabels[pos]}</span>
-                    <span>${player.username}${isMe ? ' (you)' : ''}</span>
+                    <span>${player.username}${isMe ? ' (you)' : ''}${isBot ? ' 🤖' : ''}</span>
                     ${player.isHost ? '<span class="host-badge">HOST</span>' : ''}
                 </div>
                 <span class="ready-status">${player.ready ? '✅' : '⏳'}</span>
@@ -251,15 +254,23 @@ function updatePlayersUI(room) {
         playersList.appendChild(slot);
     }
     
-    const playerCount = room.playerCount;
-    const readyCount = room.players.filter(p => p.ready).length;
+    const humanCount = room.humanCount || room.players.filter(p => !p.isBot).length;
+    const humanReadyCount = room.players.filter(p => !p.isBot && p.ready).length;
+    const botCount = room.players.filter(p => p.isBot).length;
     
-    if (playerCount < 4) {
-        waitingStatus.textContent = `Waiting for players... (${playerCount}/4)`;
-    } else if (readyCount < 4) {
-        waitingStatus.textContent = `Waiting for everyone to be ready... (${readyCount}/4)`;
+    if (humanCount < 4) {
+        if (humanReadyCount === humanCount && humanCount > 0) {
+            waitingStatus.textContent = `Ready to start with ${botCount} bot${botCount !== 1 ? 's' : ''}!`;
+        } else {
+            waitingStatus.textContent = `${humanCount} player${humanCount !== 1 ? 's' : ''}, ${botCount} bot${botCount !== 1 ? 's' : ''} - waiting for ready (${humanReadyCount}/${humanCount})`;
+        }
     } else {
-        waitingStatus.textContent = 'Starting game...';
+        const readyCount = room.players.filter(p => p.ready).length;
+        if (readyCount < 4) {
+            waitingStatus.textContent = `Waiting for everyone to be ready... (${readyCount}/4)`;
+        } else {
+            waitingStatus.textContent = 'Starting game...';
+        }
     }
 }
 
@@ -363,51 +374,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Multiplayer game handlers
 async function handleMultiplayerGameStart(state) {
-    hideLobby();
+    console.log('handleMultiplayerGameStart called, round:', state.roundNumber, 'current:', currentRoundNumber, 'handling:', isHandlingRoundStart);
     
-    // Hide round over modal if it was open (new round starting)
-    hideRoundOverModal();
+    // Prevent duplicate handling of the same round - always skip if already processed
+    if (state.roundNumber === currentRoundNumber && state.roundNumber > 0) {
+        console.warn('Already processed round', state.roundNumber, '- ignoring duplicate');
+        return;
+    }
     
-    // Reset pass state for new round
-    hasPassed = false;
-    pendingReceivedCards = [];
-    hasPlayedCard = false;
+    // If we're already dealing, wait for it to finish
+    if (isHandlingRoundStart) {
+        console.warn('Already handling round start, ignoring overlapping call');
+        return;
+    }
     
-    // Store player names
-    multiplayerNames = state.playerNames || {};
+    isHandlingRoundStart = true;
+    currentRoundNumber = state.roundNumber;
     
-    // Update player labels in the UI
-    updatePlayerLabels();
-    
-    // Reset game state
-    gameState.hands = { bottom: [], left: [], top: [], right: [] };
-    gameState.takenCards = { bottom: [], left: [], top: [], right: [] };
-    gameState.scores = state.scores || { bottom: 0, left: 0, top: 0, right: 0 };
-    gameState.roundScores = state.roundScores || { bottom: 0, left: 0, top: 0, right: 0 };
-    gameState.hmarLetters = state.hmarLetters || { bottom: '', left: '', top: '', right: '' };
-    gameState.passDirection = state.passDirection;
-    gameState.currentTrick = [];
-    
-    // Clear UI
-    renderAllHands();
-    clearTable();
-    updateScores();
-    updateCurrentPlayerInfo();
-    
-    // Show dealing animation
-    gameState.gamePhase = 'dealing';
-    updateStatus(`Round ${state.roundNumber}: Dealing cards...`);
-    
-    // Animate dealing cards
-    await dealCardsMultiplayer(state.myHand, state.otherPlayers);
-    
-    // Now show pass modal
-    gameState.gamePhase = 'passing';
-    gameState.hands.bottom = state.myHand;
-    sortHand('bottom');
-    renderAllHands();
-    updateStatus(`Round ${state.roundNumber}: Select 3 cards to pass ${state.passDirection}`);
-    showPassModal();
+    try {
+        hideLobby();
+        
+        // Hide round over modal if it was open (new round starting)
+        hideRoundOverModal();
+        
+        // Reset pass state for new round
+        hasPassed = false;
+        pendingReceivedCards = [];
+        hasPlayedCard = false;
+        
+        // Store player names
+        multiplayerNames = state.playerNames || {};
+        
+        // Update player labels in the UI
+        updatePlayerLabels();
+        
+        // Reset game state - IMPORTANT: clear hands before dealing
+        gameState.hands = { bottom: [], left: [], top: [], right: [] };
+        gameState.takenCards = { bottom: [], left: [], top: [], right: [] };
+        gameState.scores = state.scores || { bottom: 0, left: 0, top: 0, right: 0 };
+        gameState.roundScores = state.roundScores || { bottom: 0, left: 0, top: 0, right: 0 };
+        gameState.hmarLetters = state.hmarLetters || { bottom: '', left: '', top: '', right: '' };
+        gameState.passDirection = state.passDirection;
+        gameState.currentTrick = [];
+        
+        // Clear UI
+        renderAllHands();
+        clearTable();
+        updateScores();
+        updateCurrentPlayerInfo();
+        
+        // Show dealing animation
+        gameState.gamePhase = 'dealing';
+        updateStatus(`Round ${state.roundNumber}: Dealing cards...`);
+        
+        // Animate dealing cards
+        await dealCardsMultiplayer(state.myHand, state.otherPlayers);
+        
+        // Now show pass modal
+        gameState.gamePhase = 'passing';
+        gameState.hands.bottom = state.myHand;
+        sortHand('bottom');
+        renderAllHands();
+        updateStatus(`Round ${state.roundNumber}: Select 3 cards to pass ${state.passDirection}`);
+        showPassModal();
+    } finally {
+        isHandlingRoundStart = false;
+    }
 }
 
 // Deal cards with animation for multiplayer
@@ -421,24 +453,27 @@ async function dealCardsMultiplayer(myHand, otherPlayers) {
         cardCounts[op.position] = op.cardCount;
     }
     
+    // Clear hands first to ensure no duplicates
+    gameState.hands = { bottom: [], left: [], top: [], right: [] };
+    
     // Start deal sound
     if (typeof soundEnabled !== 'undefined' && soundEnabled && typeof cardDealSound !== 'undefined') {
         cardDealSound.currentTime = 0;
         cardDealSound.play().catch(() => {});
     }
     
-    // Simulate dealing 13 cards to each player
+    // Animate dealing 13 cards to each player
     for (let cardNum = 0; cardNum < 13; cardNum++) {
         for (let i = 0; i < 4; i++) {
             const player = dealOrder[i];
             
-            // For bottom player, use actual cards; for others, use dummy cards
+            // Add card to hand
             if (player === 'bottom' && cardNum < myHand.length) {
                 gameState.hands.bottom.push(myHand[cardNum]);
             } else if (player !== 'bottom') {
-                // Add a placeholder for other players' cards (they show backs)
-                if (!gameState.hands[player]) gameState.hands[player] = [];
-                if (gameState.hands[player].length < cardCounts[player]) {
+                // Add dummy card for other players
+                const count = cardCounts[player] || 13;
+                if (gameState.hands[player].length < count) {
                     gameState.hands[player].push({ suit: 'back', rank: 'X' });
                 }
             }
@@ -446,9 +481,11 @@ async function dealCardsMultiplayer(myHand, otherPlayers) {
             // Animate card dealing
             const targetPos = getPlayerPosition(player);
             const showFace = player === 'bottom';
-            const dummyCard = { suit: 'hearts', rank: 'A' }; // Doesn't matter, shown as back
+            const dummyCard = { suit: 'hearts', rank: 'A' };
             
             animateCardSlide(dummyCard, deckPos, targetPos, showFace, 250);
+            
+            // Render hand progressively for all players
             renderPlayerHand(player);
             
             await new Promise(r => setTimeout(r, 60));
@@ -661,6 +698,18 @@ function handleCardsExchanged(state) {
     
     // Use server's definitive hand (includes received cards)
     gameState.hands.bottom = state.myHand;
+    
+    // Update other players' card counts from server data
+    if (state.otherPlayers) {
+        for (const op of state.otherPlayers) {
+            // Reset their dummy hand to the correct count
+            gameState.hands[op.position] = [];
+            for (let i = 0; i < op.cardCount; i++) {
+                gameState.hands[op.position].push({ suit: 'back', rank: 'X' });
+            }
+        }
+    }
+    
     gameState.gamePhase = state.phase;
     gameState.currentPlayer = state.currentPlayer;
     
@@ -696,19 +745,41 @@ function handleCardPlayed(data) {
     renderCardOnTable(data.position, data.card);
     playSound('sound-card-play');
     
-    // If it's our card being played (bottom), remove from hand
+    // Remove card from hand (for any player)
     if (data.position === 'bottom') {
         const cardId = `${data.card.rank}-${data.card.suit}`;
         gameState.hands.bottom = gameState.hands.bottom.filter(c => 
             `${c.rank}-${c.suit}` !== cardId
         );
-        renderPlayerHand('bottom');
+    } else {
+        // For other players, remove one dummy card from their hand
+        if (gameState.hands[data.position] && gameState.hands[data.position].length > 0) {
+            gameState.hands[data.position].pop();
+        }
     }
+    
+    // Re-render the player's hand
+    renderPlayerHand(data.position);
 }
 
 function handleTurnChanged(state) {
     gameState.currentPlayer = state.currentPlayer;
     gameState.leadSuit = state.leadSuit;
+    
+    // Sync other players' card counts from server
+    if (state.otherPlayers) {
+        for (const op of state.otherPlayers) {
+            const currentCount = gameState.hands[op.position]?.length || 0;
+            if (currentCount !== op.cardCount) {
+                // Resync dummy cards
+                gameState.hands[op.position] = [];
+                for (let i = 0; i < op.cardCount; i++) {
+                    gameState.hands[op.position].push({ suit: 'back', rank: 'X' });
+                }
+                renderPlayerHand(op.position);
+            }
+        }
+    }
     
     // Reset played card flag when turn changes (allows new play when it's our turn again)
     hasPlayedCard = false;
@@ -759,6 +830,17 @@ function handleNewTrick(state) {
     gameState.leadSuit = null;
     gameState.currentTrick = [];
     gameState.gamePhase = 'playing';
+    
+    // Sync other players' card counts from server
+    if (state.otherPlayers) {
+        for (const op of state.otherPlayers) {
+            gameState.hands[op.position] = [];
+            for (let i = 0; i < op.cardCount; i++) {
+                gameState.hands[op.position].push({ suit: 'back', rank: 'X' });
+            }
+        }
+        renderAllHands();
+    }
     
     // Reset played card flag for new trick
     hasPlayedCard = false;

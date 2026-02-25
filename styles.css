@@ -968,6 +968,15 @@ body {
     color: white;
 }
 
+.player-slot.bot {
+    background: rgba(100, 100, 150, 0.3);
+    border-left: 3px solid #8888aa;
+}
+
+.player-slot.bot .position-badge {
+    background: #6a6a8a;
+}
+
 .player-slot .player-info {
     display: flex;
     align-items: center;
