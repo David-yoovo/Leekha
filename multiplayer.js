@@ -813,6 +813,10 @@ function handleTurnChanged(state) {
     updateStatus(`Trick ${state.trickNumber}: ${playerName}'s turn`);
     updateCurrentPlayerIndicator();
     renderPlayerHand('bottom');
+    // Show transient 'Your turn' banner when it's our turn
+    if (state.currentPlayer === 'bottom') {
+        try { showYourTurnBanner(); } catch (e) {}
+    }
 }
 
 async function handleTrickComplete(data) {

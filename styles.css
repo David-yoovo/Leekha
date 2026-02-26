@@ -487,6 +487,31 @@ body {
   transform: none;
 }
 
+/* Your Turn banner */
+.your-turn {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: rgba(255,215,0,0.95);
+  color: #111;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 260ms ease, opacity 260ms ease;
+  z-index: 1200;
+  text-transform: uppercase;
+}
+.your-turn.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.06);
+}
+.your-turn.hidden { display: none; }
+
 /* Received Cards Area */
 .received-cards-area {
   position: absolute;

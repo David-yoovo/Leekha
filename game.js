@@ -632,6 +632,7 @@ function playCard(player, card) {
         gameState.currentPlayer = PLAYERS[nextIdx];
         updateStatus(`Trick ${gameState.trickNumber}: ${getPlayerName(gameState.currentPlayer)}'s turn`);
         updateCurrentPlayerIndicator();
+        if (gameState.currentPlayer === 'bottom') showYourTurnBanner();
         updateCurrentPlayerInfo();
         renderPlayerHand('bottom'); // Update playable indicators
         
@@ -691,6 +692,7 @@ async function completeTrick() {
         updateCurrentPlayerIndicator();
         updateCurrentPlayerInfo();
         renderPlayerHand('bottom');
+        if (gameState.currentPlayer === 'bottom') showYourTurnBanner();
         
         // If bot's turn, trigger bot play
         if (gameState.currentPlayer !== 'bottom') {
@@ -1250,6 +1252,7 @@ function startPlayingPhase() {
     gameState.trickNumber = 1;
     
     updateStatus(`Trick ${gameState.trickNumber}: ${getPlayerName(gameState.currentPlayer)}'s turn`);
+    if (gameState.currentPlayer === 'bottom') showYourTurnBanner();
     renderAllHands();
     updateCurrentPlayerIndicator();
     updateCurrentPlayerInfo();
@@ -1534,6 +1537,31 @@ function updateCurrentPlayerInfo() {
     
     // Update your taken cards stack
     updateTakenCardsStack();
+}
+
+// Show a transient "Your turn" banner for the human player
+let _yourTurnTimers = { removeVisible: null, hide: null };
+function showYourTurnBanner() {
+    const el = document.getElementById('your-turn-banner');
+    if (!el) return;
+    // Clear previous timers
+    if (_yourTurnTimers.removeVisible) clearTimeout(_yourTurnTimers.removeVisible);
+    if (_yourTurnTimers.hide) clearTimeout(_yourTurnTimers.hide);
+
+    el.classList.remove('hidden');
+    // Force reflow to allow transition
+    void el.offsetWidth;
+    el.classList.add('visible');
+
+    // Remove visible class after 1200ms (fade out)
+    _yourTurnTimers.removeVisible = setTimeout(() => {
+        el.classList.remove('visible');
+    }, 1200);
+
+    // Hide element after transition completes
+    _yourTurnTimers.hide = setTimeout(() => {
+        el.classList.add('hidden');
+    }, 1600);
 }
 
 function updateTakenCardsStack() {
