@@ -829,6 +829,24 @@ async function handleTrickComplete(data) {
     if (data.cards && data.cards.length > 0) {
         gameState.takenCards[data.winner].push(...data.cards);
     }
+
+    // Special announcements (QoS / 10♦ / STRIKE)
+    try {
+        const tookQoS = (data.cards || []).some(c => isQueenOfSpades(c));
+        const took10D = (data.cards || []).some(c => isTenOfDiamonds(c));
+        if (tookQoS || took10D) {
+            if (tookQoS && took10D) {
+                showSpecialAnnouncement(`${winnerName} STRIKE!`, 'strike');
+                playSound('sound-game-over');
+            } else if (tookQoS) {
+                showSpecialAnnouncement(`${winnerName} ate the Lady!`, 'qos');
+                playSound('sound-trick-win');
+            } else if (took10D) {
+                showSpecialAnnouncement(`${winnerName} ate the 10♦!`, 'ten');
+                playSound('sound-trick-win');
+            }
+        }
+    } catch (e) {}
     
     // Update points
     if (data.points !== undefined) {

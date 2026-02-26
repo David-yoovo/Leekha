@@ -676,6 +676,25 @@ async function completeTrick() {
     
     // Clear table
     clearTable();
+
+    // Special announcements for penalties
+    try {
+        const tookQoS = wonCards.some(c => isQueenOfSpades(c));
+        const took10D = wonCards.some(c => isTenOfDiamonds(c));
+        if (tookQoS || took10D) {
+            const winnerName = getPlayerName(winner.player);
+            if (tookQoS && took10D) {
+                showSpecialAnnouncement(`${winnerName} STRIKE!`, 'strike');
+                playSound('sound-game-over');
+            } else if (tookQoS) {
+                showSpecialAnnouncement(`${winnerName} ate the Lady!`, 'qos');
+                playSound('sound-trick-win');
+            } else if (took10D) {
+                showSpecialAnnouncement(`${winnerName} ate the 10♦!`, 'ten');
+                playSound('sound-trick-win');
+            }
+        }
+    } catch (e) {}
     
     // Check if round is over
     if (gameState.hands.bottom.length === 0) {
@@ -1561,6 +1580,32 @@ function showYourTurnBanner() {
     // Hide element after transition completes
     _yourTurnTimers.hide = setTimeout(() => {
         el.classList.add('hidden');
+    }, 1600);
+}
+
+// Show a special announcement banner (QoS / 10♦ / STRIKE)
+function showSpecialAnnouncement(text, cls = 'qos') {
+    const container = document.getElementById('table-center') || document.body;
+    const el = document.createElement('div');
+    el.className = `special-announcement ${cls}`;
+    const emoji = document.createElement('span');
+    emoji.className = 'emoji';
+    if (cls === 'qos') emoji.textContent = '👑♠️';
+    else if (cls === 'ten') emoji.textContent = '💥♦️';
+    else if (cls === 'strike') emoji.textContent = '⚡️💥';
+    el.appendChild(emoji);
+    const textNode = document.createElement('span');
+    textNode.textContent = text;
+    el.appendChild(textNode);
+
+    container.appendChild(el);
+    // Force reflow then show
+    void el.offsetWidth;
+    el.classList.add('visible');
+
+    setTimeout(() => {
+        el.classList.remove('visible');
+        setTimeout(() => el.remove(), 500);
     }, 1600);
 }
 

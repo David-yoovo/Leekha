@@ -512,6 +512,35 @@ body {
 }
 .your-turn.hidden { display: none; }
 
+/* Special announcement (QoS / 10♦ / STRIKE) */
+.special-announcement {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  padding: 14px 26px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1.05rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  opacity: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 300ms cubic-bezier(.2,.9,.2,1), opacity 300ms ease;
+}
+.special-announcement.visible {
+  opacity: 1;
+  transform: translate(-50%, -60%) scale(1.04);
+}
+.special-announcement.qos { background: linear-gradient(90deg,#111 0%, #222 50%, #111 100%); border: 2px solid #ffd700; }
+.special-announcement.ten { background: linear-gradient(90deg,#1b3a3a 0%, #2d6b6b 100%); border: 2px solid #ff6b6b; }
+.special-announcement.strike { background: linear-gradient(90deg,#330000 0%, #661111 100%); border: 2px solid #ff4444; color: #ffeedd; }
+.special-announcement .emoji { font-size: 1.4rem; }
+
 /* Received Cards Area */
 .received-cards-area {
   position: absolute;
