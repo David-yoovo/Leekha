@@ -1147,7 +1147,7 @@ function renderAllHands() {
 
 function renderReceivedCards() {
     const container = document.getElementById('received-cards-area');
-    const mobileIndicator = document.getElementById('mobile-received-indicator');
+    // const mobileIndicator = document.getElementById('mobile-received-indicator');
     const mobileCount = document.getElementById('mobile-received-count');
     
     if (!container) return;
@@ -1157,15 +1157,16 @@ function renderReceivedCards() {
     
     if (gameState.receivedCards.length === 0) {
         container.style.display = 'none';
-        mobileIndicator?.classList.add('hidden');
+        // mobileIndicator?.classList.add('hidden');
         return;
     }
     
     container.style.display = 'flex';
     
     // Update mobile indicator
-    if (isMobileDevice() && mobileIndicator && mobileCount) {
-        mobileIndicator.classList.remove('hidden');
+    // if (isMobileDevice() && mobileIndicator && mobileCount) {
+    if (isMobileDevice() && mobileCount) {
+        // mobileIndicator.classList.remove('hidden');
         mobileCount.textContent = gameState.receivedCards.length;
     }
     
@@ -1754,19 +1755,19 @@ function setupMobileCardPicker() {
     const selectBtn = document.getElementById('mobile-select-btn');
     const clearBtn = document.getElementById('btn-picker-clear');
     const confirmBtn = document.getElementById('btn-picker-confirm');
-    const receivedIndicator = document.getElementById('mobile-received-indicator');
+    // const receivedIndicator = document.getElementById('mobile-received-indicator');
     
     selectBtn?.addEventListener('click', showMobileCardPicker);
     clearBtn?.addEventListener('click', clearMobileSelection);
     confirmBtn?.addEventListener('click', confirmMobilePass);
     
     // Mobile received cards indicator - scroll to received cards area
-    receivedIndicator?.addEventListener('click', () => {
-        const receivedArea = document.getElementById('received-cards-area');
-        if (receivedArea) {
-            receivedArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    });
+    // receivedIndicator?.addEventListener('click', () => {
+    //     const receivedArea = document.getElementById('received-cards-area');
+    //     if (receivedArea) {
+    //         receivedArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    //     }
+    // });
     
     // Close picker when clicking outside (on background)
     document.getElementById('mobile-card-picker')?.addEventListener('click', (e) => {

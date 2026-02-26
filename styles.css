@@ -1376,7 +1376,8 @@ body {
     
     /* Received cards - mobile positioning */
     .received-cards-area {
-        bottom: 100px;
+        /* bottom: 100px; */
+        bottom: 136px;
         left: 50% !important;
         right: auto !important;
         transform: translateX(-50%) !important;
@@ -1420,7 +1421,8 @@ body {
     /* Mobile Received Cards Indicator */
     .mobile-received-indicator {
         position: fixed;
-        bottom: 100px;
+        /* bottom: 100px; */
+        bottom: 155px;
         left: 50%;
         transform: translateX(-50%);
         background: linear-gradient(135deg, #4a8a6a 0%, #2d5a4a 100%);
@@ -1448,13 +1450,13 @@ body {
         background: #ffd700;
         color: #1a1a1a;
         border-radius: 50%;
-        width: 24px;
-        height: 24px;
+        width: 36px;
+        height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: bold;
-        font-size: 0.85rem;
+        font-weight: 700;
+        font-size: 1.1rem;
     }
     
     .mobile-received-indicator .received-text {
@@ -1475,6 +1477,13 @@ body {
 .mobile-pass-direction,
 .mobile-selection-preview {
     display: none !important;
+}
+
+/* Mobile picker count (top-right of mobile picker) */
+.mobile-card-picker-count,
+#mobile-picker-count {
+    font-size: 1.05rem;
+    font-weight: 700;
 }
 
 /* Small phone screens */
