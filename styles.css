@@ -1323,7 +1323,8 @@ body {
   }
 
   .player-bottom {
-    bottom: 10px;
+    /* bottom: 10px; */
+    bottom: 20px;
   }
 
   .player-left {
