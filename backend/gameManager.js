@@ -732,6 +732,21 @@ class GameManager {
             }
         } else {
             // Regular round over - no one reached 101 yet
+            // If someone collected the Queen of Spades this round, set next dealer so
+            // the next round's first player will be to that player's RIGHT.
+            let qosTaker = null;
+            for (const pos of POSITIONS) {
+                if ((game.takenCards[pos] || []).some(c => this.isQueenOfSpades(c))) {
+                    qosTaker = pos;
+                    break;
+                }
+            }
+            if (qosTaker) {
+                const qosIdx = POSITIONS.indexOf(qosTaker);
+                // Set dealerIndex so that after the usual increment, the starter will be to QoS taker's right
+                game.dealerIndex = (qosIdx + 1) % 4;
+            }
+
             game.phase = 'roundOver';
             this.broadcastRoundOver(roomId, null);
             

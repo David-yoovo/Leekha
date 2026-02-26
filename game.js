@@ -740,6 +740,21 @@ function endRound() {
             showGameOverModal(loser);
         }
     } else {
+        // If someone collected the Queen of Spades this round, set next dealer so
+        // the next round's first player will be to that player's RIGHT.
+        let qosTaker = null;
+        for (const player of PLAYERS) {
+            if ((gameState.takenCards[player] || []).some(c => isQueenOfSpades(c))) {
+                qosTaker = player;
+                break;
+            }
+        }
+        if (qosTaker) {
+            const qosIdx = PLAYERS.indexOf(qosTaker);
+            // Set dealerIndex so that when nextRound() increments it, starter will be to QoS taker's right
+            gameState.dealerIndex = (qosIdx + 1) % 4;
+        }
+
         showRoundOverModal();
     }
 }
