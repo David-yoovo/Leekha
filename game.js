@@ -1414,7 +1414,7 @@ function showGameOverModal(loser) {
     const modal = document.getElementById('game-over-modal');
     const title = document.getElementById('game-over-title');
     const scoresDiv = document.getElementById('final-scores');
-    const newGameBtn = document.getElementById('new-game-btn');
+    const newGameBtn = document.getElementById('btn-new-game');
     
     const loserName = getPlayerName(loser);
     const loserHmar = gameState.hmarLetters[loser];
@@ -1447,7 +1447,7 @@ function showMatchOverModal(loser, winner) {
     const modal = document.getElementById('game-over-modal');
     const title = document.getElementById('game-over-title');
     const scoresDiv = document.getElementById('final-scores');
-    const newGameBtn = document.getElementById('new-game-btn');
+    const newGameBtn = document.getElementById('btn-new-game');
     
     title.textContent = `${getPlayerName(loser)} is HMAR!`;
     

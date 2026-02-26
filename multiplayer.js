@@ -990,7 +990,7 @@ function handleMatchOver(data) {
 
 function handleNextGameStatus(data) {
     // Update button text while waiting for others
-    const newGameBtn = document.getElementById('new-game-btn');
+    const newGameBtn = document.getElementById('btn-new-game');
     if (newGameBtn && data.youReady) {
         newGameBtn.textContent = `Waiting for others... (${data.readyCount}/${data.totalPlayers})`;
         newGameBtn.disabled = true;
@@ -1001,7 +1001,7 @@ function showGameOverModalMultiplayer(loserName, loserPosition, isMatchOver) {
     const modal = document.getElementById('game-over-modal');
     const title = document.getElementById('game-over-title');
     const scoresDiv = document.getElementById('final-scores');
-    const newGameBtn = document.getElementById('new-game-btn');
+    const newGameBtn = document.getElementById('btn-new-game');
     
     const loserHmar = gameState.hmarLetters[loserPosition] || '';
     title.textContent = `${loserName} lost this game! [${loserHmar}]`;
@@ -1038,7 +1038,7 @@ function showMatchOverModalMultiplayer(loserName, loserPosition, winnerPosition)
     const modal = document.getElementById('game-over-modal');
     const title = document.getElementById('game-over-title');
     const scoresDiv = document.getElementById('final-scores');
-    const newGameBtn = document.getElementById('new-game-btn');
+    const newGameBtn = document.getElementById('btn-new-game');
     
     title.textContent = `${loserName} is HMAR!`;
     
