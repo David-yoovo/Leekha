@@ -15,3 +15,12 @@ ofc make sure this applies for both solo and multiplayer
 in mode multiplayer, when there's let say 2 players and 2 bots
 the first round finished, it displays the scores and the button for next round...
 but if one of us click next round, and the other player didnt, it will start dealing cards, but for the other player nothing will happen, so if he click the next round it will deal the cards again...
+
+
+
+
+------
+1. make the cards span more when they are less
+2. new game after full round (game ends) finish does not work
+3. sometimes after the round finishes it sometimes only allowed me to put one specific type of card 
+4. when someone eat the lady it must go to the one to the right
