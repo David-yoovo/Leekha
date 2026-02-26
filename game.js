@@ -1090,6 +1090,23 @@ function renderPlayerHand(player) {
     
     const hand = gameState.hands[player];
     const isHuman = player === 'bottom';
+
+    // Only spread cards for the active player while playing; otherwise keep default layout.
+    const SMALL_HAND_THRESHOLD = 9;
+    // Only spread the human player's hand while in the playing phase.
+    if (gameState.gamePhase === 'playing' && player === 'bottom' && hand.length > 0 && hand.length <= SMALL_HAND_THRESHOLD) {
+        // Wider container for top/bottom when the active player has a small hand
+        if (player === 'bottom' || player === 'top') {
+            container.style.width = Math.min(window.innerWidth * 0.8, 1000) + 'px';
+        } else {
+            container.style.width = Math.min(window.innerHeight * 0.5, 300) + 'px';
+        }
+        container.style.justifyContent = 'space-between';
+    } else {
+        // Default layout (during dealing/passing or for non-active players)
+        container.style.width = 'auto';
+        container.style.justifyContent = 'center';
+    }
     
     hand.forEach(card => {
         const cardEl = createCardElement(card, isHuman);

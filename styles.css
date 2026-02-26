@@ -308,7 +308,7 @@ body {
 /* Card Styles */
 .card {
     width: 70px;
-    height: 100px;
+    height: 110px;
     background: white;
     border-radius: 8px;
     display: flex;
