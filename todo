@@ -24,4 +24,4 @@ but if one of us click next round, and the other player didnt, it will start dea
 2. [fixed] new game after full round (game ends) finishes does not work
 3. [fixed] sometimes after the round finishes it sometimes only allowed me to put one specific type of card 
 4. [fixed] when someone eats the lady, the turn must go to the one to their right (example if bottom ate the lady leekha, the turn must be the one on their right)
-5. 
+5. bots and players must always use the leekha cards (10 and lady) even if if they have the same card (if the card is higher, like if there's a change that other player might eat the leekha then it's mandoraty for him to throw it)

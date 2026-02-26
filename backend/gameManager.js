@@ -633,6 +633,26 @@ class GameManager {
         const hasLeadSuit = hand.some(c => c.suit === game.leadSuit);
 
         if (hasLeadSuit) {
+            // Compute current highest in this trick for the lead suit
+            let currentHighest = -1;
+            for (const t of game.currentTrick) {
+                if (t.card.suit === game.leadSuit) {
+                    currentHighest = Math.max(currentHighest, this.getCardValue(t.card.rank));
+                }
+            }
+
+            if (game.leadSuit === 'spades') {
+                const hasQoS = hand.some(c => this.isQueenOfSpades(c));
+                const hasHigher = hand.some(c => c.suit === 'spades' && this.getCardValue(c.rank) > currentHighest);
+                if (hasQoS && !hasHigher) return this.isQueenOfSpades(card);
+            }
+
+            if (game.leadSuit === 'diamonds') {
+                const has10oD = hand.some(c => this.isTenOfDiamonds(c));
+                const hasHigher = hand.some(c => c.suit === 'diamonds' && this.getCardValue(c.rank) > currentHighest);
+                if (has10oD && !hasHigher) return this.isTenOfDiamonds(card);
+            }
+
             return card.suit === game.leadSuit;
         } else {
             // Leekha rule: must play QoS or 10oD if can't follow suit

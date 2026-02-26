@@ -572,7 +572,29 @@ function canPlayCard(player, card) {
     const hasLeadSuit = hand.some(c => c.suit === gameState.leadSuit);
     
     if (hasLeadSuit) {
-        // Must play lead suit
+        // Determine current highest value among played lead-suit cards in this trick
+        let currentHighest = -1;
+        for (const t of gameState.currentTrick) {
+            if (t.card.suit === gameState.leadSuit) {
+                currentHighest = Math.max(currentHighest, getCardValue(t.card.rank));
+            }
+        }
+
+        // If player holds Queen of Spades or Ten of Diamonds of the lead suit,
+        // require playing it only when they have NO card of the lead suit that
+        // can beat the current highest lead card already on table.
+        if (gameState.leadSuit === 'spades') {
+            const hasQoS = hand.some(c => isQueenOfSpades(c));
+            const hasHigher = hand.some(c => c.suit === 'spades' && getCardValue(c.rank) > currentHighest);
+            if (hasQoS && !hasHigher) return isQueenOfSpades(card);
+        }
+        if (gameState.leadSuit === 'diamonds') {
+            const has10oD = hand.some(c => isTenOfDiamonds(c));
+            const hasHigher = hand.some(c => c.suit === 'diamonds' && getCardValue(c.rank) > currentHighest);
+            if (has10oD && !hasHigher) return isTenOfDiamonds(card);
+        }
+
+        // Default: must follow suit
         return card.suit === gameState.leadSuit;
     } else {
         // Leekha principle: if you can't follow suit and have QoS or 10oD, must play one
