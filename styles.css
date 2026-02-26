@@ -1,361 +1,367 @@
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #1a4a3a 0%, #0d2818 100%);
-    min-height: 100vh;
-    overflow: hidden;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1a4a3a 0%, #0d2818 100%);
+  min-height: 100vh;
+  overflow: hidden;
 }
 
 .game-container {
-    width: 100vw;
-    height: 100vh;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Sound Toggle */
 .sound-toggle {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(120px);
-    display: flex;
-    gap: 10px;
-    z-index: 150;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(120px);
+  display: flex;
+  gap: 10px;
+  z-index: 150;
 }
 
-.btn-sound, .btn-music {
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    font-size: 1.2rem;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.2s;
+.btn-sound,
+.btn-music {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.2s;
 }
 
-.btn-sound:hover, .btn-music:hover {
-    background: rgba(255, 215, 0, 0.8);
-    transform: scale(1.1);
+.btn-sound:hover,
+.btn-music:hover {
+  background: rgba(255, 215, 0, 0.8);
+  transform: scale(1.1);
 }
 
-.btn-sound.muted, .btn-music.muted {
-    opacity: 0.5;
+.btn-sound.muted,
+.btn-music.muted {
+  opacity: 0.5;
 }
 
 /* Scoreboard */
 .scoreboard {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 10px;
-    padding: 15px;
-    color: white;
-    z-index: 100;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 10px;
+  padding: 15px;
+  color: white;
+  z-index: 100;
 }
 
 .scoreboard h2 {
-    margin-bottom: 10px;
-    color: #ffd700;
-    font-size: 1.2rem;
-    text-align: center;
+  margin-bottom: 10px;
+  color: #ffd700;
+  font-size: 1.2rem;
+  text-align: center;
 }
 
 .scores {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .score-item {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
-    font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 0.9rem;
 }
 
 .player-score {
-    color: #ffd700;
-    font-weight: bold;
+  color: #ffd700;
+  font-weight: bold;
 }
 
 /* Current Player Info Panel */
 .current-player-info {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 10px;
-    padding: 15px;
-    color: white;
-    z-index: 100;
-    min-width: 180px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 10px;
+  padding: 15px;
+  color: white;
+  z-index: 100;
+  min-width: 180px;
 }
 
 .current-player-info h3 {
-    margin-bottom: 10px;
-    color: #ffd700;
-    font-size: 1rem;
-    text-align: center;
+  margin-bottom: 10px;
+  color: #ffd700;
+  font-size: 1rem;
+  text-align: center;
 }
 
 .info-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .info-player-name {
-    font-weight: bold;
-    font-size: 1.1rem;
-    color: #4ade80;
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #4ade80;
 }
 
 .info-score-label {
-    font-size: 0.85rem;
+  font-size: 0.85rem;
 }
 
 .info-round-score {
-    color: #ffd700;
-    font-weight: bold;
-    font-size: 1rem;
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 1rem;
 }
 
 /* Taken Cards Stack */
 .taken-cards-stack {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    z-index: 100;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
 }
 
 .stack-label {
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 5px 12px;
-    border-radius: 15px;
-    font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 0.85rem;
 }
 
 .stack-cards {
-    position: relative;
-    width: 60px;
-    height: 85px;
+  position: relative;
+  width: 60px;
+  height: 85px;
 }
 
 .stack-card {
-    position: absolute;
-    width: 60px;
-    height: 85px;
-    background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
-    background-image: 
-        repeating-linear-gradient(
-            45deg,
-            transparent,
-            transparent 10px,
-            rgba(255, 255, 255, 0.1) 10px,
-            rgba(255, 255, 255, 0.1) 20px
-        );
-    border: 2px solid #ffd700;
-    border-radius: 6px;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
-    transition: transform 0.2s;
+  position: absolute;
+  width: 60px;
+  height: 85px;
+  background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(255, 255, 255, 0.1) 10px,
+    rgba(255, 255, 255, 0.1) 20px
+  );
+  border: 2px solid #ffd700;
+  border-radius: 6px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s;
 }
 
 .taken-cards-stack:hover .stack-card {
-    transform: translateY(-3px);
+  transform: translateY(-3px);
 }
 
 .taken-cards-stack:hover .stack-label {
-    background: rgba(255, 215, 0, 0.8);
-    color: #1a1a1a;
+  background: rgba(255, 215, 0, 0.8);
+  color: #1a1a1a;
 }
 
 /* Taken Cards Viewer Modal */
 .taken-cards-viewer {
-    max-width: 600px;
-    max-height: 80vh;
+  max-width: 600px;
+  max-height: 80vh;
 }
 
 .taken-cards-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-    padding: 20px;
-    max-height: 60vh;
-    overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 .taken-cards-grid .card {
-    cursor: default;
+  cursor: default;
 }
 
 .taken-cards-grid .card:hover {
-    transform: none;
+  transform: none;
 }
 
 /* Game Status */
 .game-status {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: #fff;
-    padding: 10px 25px;
-    border-radius: 25px;
-    font-size: 1rem;
-    z-index: 100;
-    white-space: nowrap;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 10px 25px;
+  border-radius: 25px;
+  font-size: 1rem;
+  z-index: 100;
+  white-space: nowrap;
 }
 
 /* Player Areas */
 .player-area {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .player-label {
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 5px 15px;
-    border-radius: 15px;
-    font-size: 0.9rem;
-    margin: 5px 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 5px 15px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  margin: 5px 0;
 }
 
 .player-hand {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Player Positions */
 .player-top {
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .player-top .player-hand {
-    flex-direction: row;
+  flex-direction: row;
 }
 
 .player-bottom {
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1001;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
 }
 
 .player-bottom .player-hand {
-    flex-direction: row;
+  flex-direction: row;
 }
 
 .player-left {
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    flex-direction: row;
-    gap: 10px;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  flex-direction: row;
+  gap: 10px;
 }
 
 .player-left .player-hand {
-    flex-direction: column;
+  flex-direction: column;
 }
 
 .player-left .player-label {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
 }
 
 .player-right {
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    flex-direction: row-reverse;
-    gap: 10px;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  flex-direction: row-reverse;
+  gap: 10px;
 }
 
 .player-right .player-hand {
-    flex-direction: column;
+  flex-direction: column;
 }
 
 .player-right .player-label {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
 }
 
 /* Card Styles */
 .card {
-    width: 70px;
-    height: 110px;
-    background: white;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 5px;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    position: relative;
-    user-select: none;
+  width: 70px;
+  height: 110px;
+  background: white;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 5px;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  position: relative;
+  user-select: none;
 }
 
 .card:hover {
-    /* Only apply hover effect on actionable cards via .selectable class */
+  /* Only apply hover effect on actionable cards via .selectable class */
 }
 
 .card.selectable:hover {
-    transform: translateY(-10px);
-    box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.5);
-    cursor: pointer;
+  transform: translateY(-10px);
+  box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
 }
 
 .card.playable:hover {
-    transform: translateY(-10px);
-    box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.5);
-    cursor: pointer;
+  transform: translateY(-10px);
+  box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
 }
 
 .card.selected {
-    transform: translateY(-20px);
-    box-shadow: 0 0 20px #ffd700;
-    border: 2px solid #ffd700;
+  transform: translateY(-20px);
+  box-shadow: 0 0 20px #ffd700;
+  border: 2px solid #ffd700;
 }
 
 .card.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .card.disabled:hover {
-    transform: none;
+  transform: none;
 }
 
 .card-back {
-    background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
-    /* background-image: 
+  background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+  /* background-image: 
         repeating-linear-gradient(
             45deg,
             transparent,
@@ -363,1112 +369,1151 @@ body {
             rgba(255, 255, 255, 0.1) 10px,
             rgba(255, 255, 255, 0.1) 20px
         ); */
-    border: 3px solid #ffd700;
+  border: 3px solid #ffd700;
 }
 
 .card-corner {
-    font-size: 0.9rem;
-    font-weight: bold;
-    line-height: 1;
+  font-size: 0.9rem;
+  font-weight: bold;
+  line-height: 1;
 }
 
-.card-rank, .card-suit {
-    display: inline;
+.card-rank,
+.card-suit {
+  display: inline;
 }
 
 .card-corner-top {
-    align-self: flex-start;
+  align-self: flex-start;
 }
 
 .card-corner-bottom {
-    align-self: flex-end;
-    transform: rotate(180deg);
+  align-self: flex-end;
+  transform: rotate(180deg);
 }
 
 .card-center {
-    font-size: 2rem;
-    text-align: center;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+  font-size: 2rem;
+  text-align: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-.suit-hearts, .suit-diamonds {
-    color: #e74c3c;
+.suit-hearts,
+.suit-diamonds {
+  color: #e74c3c;
 }
 
-.suit-spades, .suit-clubs {
-    color: #2c3e50;
+.suit-spades,
+.suit-clubs {
+  color: #2c3e50;
 }
 
 /* Cards in hand positioning */
 .player-bottom .card {
-    margin: 0 -15px;
+  margin: 0 -15px;
 }
 
 .player-top .card {
-    margin: 0 -25px;
+  margin: 0 -25px;
 }
 
-.player-left .card, .player-right .card {
-    margin: -30px 0;
-    width: 55px;
-    height: 78px;
-    transform: rotate(90deg);
+.player-left .card,
+.player-right .card {
+  margin: -30px 0;
+  width: 55px;
+  height: 78px;
+  transform: rotate(90deg);
 }
 
-.player-left .card:hover, .player-right .card:hover {
-    transform: rotate(90deg);
+.player-left .card:hover,
+.player-right .card:hover {
+  transform: rotate(90deg);
 }
 
 .player-left .card .card-corner,
 .player-right .card .card-corner,
 .player-left .card .card-center,
 .player-right .card .card-center {
-    font-size: 0.8rem;
+  font-size: 0.8rem;
 }
 
 .player-left .card .card-center,
 .player-right .card .card-center {
-    font-size: 1.5rem;
+  font-size: 1.5rem;
 }
 
 /* Center Table */
 .table-center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 380px;
-    height: 380px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 380px;
+  height: 380px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .table-surface {
-    width: 320px;
-    height: 320px;
-    background: radial-gradient(ellipse at center, #2d5a4a 0%, #1a3a2a 100%);
-    border-radius: 50%;
-    border: 8px solid #8b4513;
-    box-shadow: 
-        inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 20px rgba(0, 0, 0, 0.5);
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(ellipse at center, #2d5a4a 0%, #1a3a2a 100%);
+  border-radius: 50%;
+  border: 8px solid #8b4513;
+  box-shadow:
+    inset 0 0 30px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(0, 0, 0, 0.5);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .table-card {
-    position: absolute;
-    transition: all 0.3s ease;
+  position: absolute;
+  transition: all 0.3s ease;
 }
 
 .table-card .card {
-    width: 75px;
-    height: 105px;
+  width: 75px;
+  height: 105px;
 }
 
 .table-card .card:hover {
-    transform: none;
+  transform: none;
 }
 
 /* Received Cards Area */
 .received-cards-area {
-    position: absolute;
-    bottom: 20px;
-    display: flex;
-    flex-direction: row;
-    z-index: 200;
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 10px;
-    border: 2px dashed rgba(255, 215, 0, 0.5);
+  position: absolute;
+  bottom: 20px;
+  display: flex;
+  flex-direction: row;
+  z-index: 200;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  border: 2px dashed rgba(255, 215, 0, 0.5);
 }
 
 .received-cards-area.from-right {
-    right: 50%;
-    transform: translateX(450px);
-    flex-direction: row-reverse;
+  right: 50%;
+  transform: translateX(450px);
+  flex-direction: row-reverse;
 }
 
 .received-cards-area.from-left {
-    left: 50%;
-    transform: translateX(-450px);
+  left: 50%;
+  transform: translateX(-450px);
 }
 
 .received-card {
-    width: 70px;
-    height: 100px;
-    cursor: pointer;
-    transition: transform 0.3s, box-shadow 0.3s;
-    margin-left: -15px;
+  width: 70px;
+  height: 100px;
+  cursor: pointer;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+  margin-left: -15px;
 }
 
 .received-cards-area.from-right .received-card {
-    margin-left: 0;
-    margin-right: -15px;
+  margin-left: 0;
+  margin-right: -15px;
 }
 
 .received-cards-area.from-right .received-card:first-child {
-    margin-right: 0;
+  margin-right: 0;
 }
 
 .received-card:first-child {
-    margin-left: 0;
+  margin-left: 0;
 }
 
 .received-card:hover {
-    transform: translateY(-15px) rotate(0deg) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    z-index: 10;
+  transform: translateY(-15px) rotate(0deg) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 10;
 }
 
 .received-card.revealed {
-    background: white;
-    cursor: pointer;
+  background: white;
+  cursor: pointer;
 }
 
 .received-card.revealed:hover::after {
-    content: 'Click to collect';
-    position: absolute;
-    bottom: -25px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.7rem;
-    color: #ffd700;
-    white-space: nowrap;
-    background: rgba(0, 0, 0, 0.8);
-    padding: 3px 8px;
-    border-radius: 5px;
+  content: "Click to collect";
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: #ffd700;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 3px 8px;
+  border-radius: 5px;
 }
 
 .received-card.locked {
-    opacity: 0.6;
-    cursor: not-allowed;
-    filter: grayscale(30%);
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(30%);
 }
 
 .received-card.locked:hover {
-    transform: none !important;
-    box-shadow: none;
+  transform: none !important;
+  box-shadow: none;
 }
 
 .received-card.locked::after {
-    content: '🔒 Pass your cards first';
-    position: absolute;
-    bottom: -25px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.65rem;
-    color: #ff6b6b;
-    white-space: nowrap;
-    background: rgba(0, 0, 0, 0.9);
-    padding: 3px 8px;
-    border-radius: 5px;
+  content: "🔒 Pass your cards first";
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  color: #ff6b6b;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 3px 8px;
+  border-radius: 5px;
 }
 
 /* Modals */
 .modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
 .modal.active {
-    display: flex;
+  display: flex;
 }
 
 /* Pass modal - positioned higher to not block cards */
 #pass-modal {
-    background: transparent;
-    pointer-events: none;
-    align-items: flex-start;
-    padding-top: 120px;
+  background: transparent;
+  pointer-events: none;
+  align-items: flex-start;
+  padding-top: 120px;
 }
 
 #pass-modal .modal-content {
-    pointer-events: auto;
+  pointer-events: auto;
 }
 
 .modal-content {
-    background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
-    border-radius: 20px;
-    padding: 30px;
-    text-align: center;
-    color: white;
-    min-width: 400px;
-    max-width: 90%;
-    border: 2px solid #ffd700;
+  background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+  border-radius: 20px;
+  padding: 30px;
+  text-align: center;
+  color: white;
+  min-width: 400px;
+  max-width: 90%;
+  border: 2px solid #ffd700;
 }
 
 .modal-content h3 {
-    margin-bottom: 20px;
-    color: #ffd700;
-    font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #ffd700;
+  font-size: 1.5rem;
 }
 
 /* Pass cards grid - for selecting cards to pass */
 .pass-cards-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-    padding: 12px 8px;
-    background: rgba(139, 69, 19, 0.3);
-    border-radius: 12px;
-    margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px 8px;
+  background: rgba(139, 69, 19, 0.3);
+  border-radius: 12px;
+  margin-bottom: 15px;
 }
 
 .pass-cards-grid .card {
-    width: 50px;
-    height: 70px;
-    margin: 0;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+  width: 50px;
+  height: 70px;
+  margin: 0;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .pass-cards-grid .card:hover {
-    transform: translateY(-5px);
+  transform: translateY(-5px);
 }
 
 .pass-cards-grid .card.selected {
-    transform: translateY(-10px);
-    box-shadow: 0 0 15px #ffd700;
-    border: 2px solid #ffd700;
+  transform: translateY(-10px);
+  box-shadow: 0 0 15px #ffd700;
+  border: 2px solid #ffd700;
 }
 
 .selected-cards-label {
-    color: #aaa;
-    font-size: 0.85rem;
-    margin-bottom: 8px;
+  color: #aaa;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
 }
 
 .selected-cards {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin: 10px 0 20px;
-    min-height: 90px;
-    flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 0 20px;
+  min-height: 90px;
+  flex-wrap: wrap;
 }
 
 .btn-confirm {
-    background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
-    color: #1a1a1a;
-    border: none;
-    padding: 12px 30px;
-    font-size: 1rem;
-    font-weight: bold;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  color: #1a1a1a;
+  border: none;
+  padding: 12px 30px;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 25px;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .btn-confirm:hover:not(:disabled) {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
 }
 
 .btn-confirm:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-start {
-    font-size: 1.3rem;
-    padding: 15px 50px;
-    margin-top: 10px;
+  font-size: 1.3rem;
+  padding: 15px 50px;
+  margin-top: 10px;
 }
 
-.final-scores, .round-scores {
-    margin: 20px 0;
-    text-align: left;
+.final-scores,
+.round-scores {
+  margin: 20px 0;
+  text-align: left;
 }
 
-.final-scores .score-row, .round-scores .score-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+.final-scores .score-row,
+.round-scores .score-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.final-scores .score-row:last-child, .round-scores .score-row:last-child {
-    border-bottom: none;
+.final-scores .score-row:last-child,
+.round-scores .score-row:last-child {
+  border-bottom: none;
 }
 
 .score-row.winner {
-    background: rgba(255, 215, 0, 0.2);
-    border-radius: 5px;
+  background: rgba(255, 215, 0, 0.2);
+  border-radius: 5px;
 }
 
 .score-row.loser {
-    background: rgba(255, 50, 50, 0.2);
-    border-radius: 5px;
+  background: rgba(255, 50, 50, 0.2);
+  border-radius: 5px;
 }
 
 /* Drag and Drop */
 .card.dragging {
-    opacity: 0.8;
-    transform: scale(1.1) rotate(5deg);
-    z-index: 1000;
+  opacity: 0.8;
+  transform: scale(1.1) rotate(5deg);
+  z-index: 1000;
 }
 
 .table-surface.drag-over {
-    box-shadow: 
-        inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 30px rgba(0, 255, 0, 0.5);
+  box-shadow:
+    inset 0 0 30px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(0, 255, 0, 0.5);
 }
 
 /* Current Player Indicator */
 .player-area.current-player .player-label {
-    background: rgba(255, 215, 0, 0.8);
-    color: #1a1a1a;
-    animation: glow 1s infinite;
+  background: rgba(255, 215, 0, 0.8);
+  color: #1a1a1a;
+  animation: glow 1s infinite;
 }
 
 @keyframes glow {
-    0%, 100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
-    50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
 }
 
 /* Trick Winner Animation */
 .trick-winner {
-    animation: winPulse 0.5s ease-out;
+  animation: winPulse 0.5s ease-out;
 }
 
 @keyframes winPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Card Slide Animation Container */
 .card-animation-layer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 2000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2000;
 }
 
 .sliding-card {
-    position: absolute;
-    transition: all 0.5s ease-in-out;
-    pointer-events: none;
+  position: absolute;
+  transition: all 0.5s ease-in-out;
+  pointer-events: none;
 }
 
 .sliding-card .card {
-    width: 70px;
-    height: 100px;
+  width: 70px;
+  height: 100px;
 }
 
 /* Trick collection animation */
 .collecting-card {
-    position: absolute;
-    transition: all 0.6s ease-in-out;
-    pointer-events: none;
+  position: absolute;
+  transition: all 0.6s ease-in-out;
+  pointer-events: none;
 }
 
 /* Mode Selection */
 .mode-select {
-    max-width: 400px;
+  max-width: 400px;
 }
 
 .mode-buttons {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
+  display: flex;
+  gap: 20px;
+  justify-content: center;
 }
 
 .btn-mode {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 25px 30px;
-    background: linear-gradient(145deg, #2d5a4a, #1a3d30);
-    border: 2px solid #4a8a6a;
-    border-radius: 15px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 25px 30px;
+  background: linear-gradient(145deg, #2d5a4a, #1a3d30);
+  border: 2px solid #4a8a6a;
+  border-radius: 15px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 140px;
 }
 
 .btn-mode:hover {
-    background: linear-gradient(145deg, #3d7a5a, #2a5d40);
-    border-color: #ffd700;
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(145deg, #3d7a5a, #2a5d40);
+  border-color: #ffd700;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
 .mode-icon {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
+  font-size: 2.5rem;
+  margin-bottom: 10px;
 }
 
 .mode-title {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #ffd700;
-    margin-bottom: 5px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ffd700;
+  margin-bottom: 5px;
 }
 
 .mode-desc {
-    font-size: 0.8rem;
-    color: #aaa;
+  font-size: 0.8rem;
+  color: #aaa;
 }
 
 /* Lobby Modal */
 .lobby-content {
-    max-width: 450px;
-    width: 100%;
+  max-width: 450px;
+  width: 100%;
 }
 
 .lobby-section {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .lobby-section.hidden {
-    display: none;
+  display: none;
 }
 
 .lobby-section label {
-    display: block;
-    color: #ccc;
-    margin-bottom: 10px;
-    font-size: 1rem;
+  display: block;
+  color: #ccc;
+  margin-bottom: 10px;
+  font-size: 1rem;
 }
 
 .lobby-section input[type="text"] {
-    width: 100%;
-    padding: 12px 15px;
-    font-size: 1rem;
-    border: 2px solid #4a8a6a;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.3);
-    color: white;
-    margin-bottom: 15px;
-    text-align: center;
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 1rem;
+  border: 2px solid #4a8a6a;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  margin-bottom: 15px;
+  text-align: center;
 }
 
 .lobby-section input[type="text"]:focus {
-    outline: none;
-    border-color: #ffd700;
+  outline: none;
+  border-color: #ffd700;
 }
 
 .lobby-section input[type="text"]::placeholder {
-    color: #888;
+  color: #888;
 }
 
 .welcome-name {
-    color: #4a8a6a;
-    font-size: 1.1rem;
-    margin-bottom: 20px;
-    text-align: center;
+  color: #4a8a6a;
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
 .welcome-name span {
-    color: #ffd700;
-    font-weight: bold;
+  color: #ffd700;
+  font-weight: bold;
 }
 
 .room-options {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .btn-room-option {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 15px 25px;
-    background: linear-gradient(145deg, #2d5a4a, #1a3d30);
-    border: 2px solid #4a8a6a;
-    border-radius: 10px;
-    color: white;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px 25px;
+  background: linear-gradient(145deg, #2d5a4a, #1a3d30);
+  border: 2px solid #4a8a6a;
+  border-radius: 10px;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .btn-room-option:hover {
-    background: linear-gradient(145deg, #3d7a5a, #2a5d40);
-    border-color: #ffd700;
+  background: linear-gradient(145deg, #3d7a5a, #2a5d40);
+  border-color: #ffd700;
 }
 
 .join-room-row {
-    display: flex;
-    gap: 10px;
+  display: flex;
+  gap: 10px;
 }
 
 .join-room-row input {
-    flex: 1;
-    margin-bottom: 0 !important;
-    text-transform: uppercase;
+  flex: 1;
+  margin-bottom: 0 !important;
+  text-transform: uppercase;
 }
 
 .join-room-row .btn-join {
-    flex-shrink: 0;
+  flex-shrink: 0;
 }
 
 .room-error {
-    background: rgba(220, 53, 69, 0.2);
-    border: 1px solid #dc3545;
-    border-radius: 8px;
-    padding: 10px;
-    color: #ff6b6b;
-    text-align: center;
-    margin-top: 10px;
+  background: rgba(220, 53, 69, 0.2);
+  border: 1px solid #dc3545;
+  border-radius: 8px;
+  padding: 10px;
+  color: #ff6b6b;
+  text-align: center;
+  margin-top: 10px;
 }
 
 .room-error.hidden {
-    display: none;
+  display: none;
 }
 
 /* Waiting Room */
 .room-code-display {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
 }
 
 .room-code-display span {
-    color: #aaa;
+  color: #aaa;
 }
 
 .room-code-display .code {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: #ffd700;
-    letter-spacing: 3px;
-    font-family: monospace;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #ffd700;
+  letter-spacing: 3px;
+  font-family: monospace;
 }
 
 .btn-copy {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 5px;
-    opacity: 0.7;
-    transition: opacity 0.2s;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
 }
 
 .btn-copy:hover {
-    opacity: 1;
+  opacity: 1;
 }
 
 .players-list {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 15px;
-    min-height: 150px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  min-height: 150px;
 }
 
 .player-slot {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 8px;
 }
 
 .player-slot:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .player-slot.empty {
-    color: #666;
-    font-style: italic;
+  color: #666;
+  font-style: italic;
 }
 
 .player-slot.filled {
-    color: white;
+  color: white;
 }
 
 .player-slot.bot {
-    background: rgba(100, 100, 150, 0.3);
-    border-left: 3px solid #8888aa;
+  background: rgba(100, 100, 150, 0.3);
+  border-left: 3px solid #8888aa;
 }
 
 .player-slot.bot .position-badge {
-    background: #6a6a8a;
+  background: #6a6a8a;
 }
 
 .player-slot .player-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .player-slot .position-badge {
-    background: #4a8a6a;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    text-transform: uppercase;
+  background: #4a8a6a;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
 }
 
 .player-slot .host-badge {
-    background: #ffd700;
-    color: #000;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: bold;
+  background: #ffd700;
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
 }
 
 .player-slot .ready-status {
-    font-size: 1.2rem;
+  font-size: 1.2rem;
 }
 
 .waiting-status {
-    text-align: center;
-    color: #aaa;
-    margin-bottom: 15px;
-    font-style: italic;
+  text-align: center;
+  color: #aaa;
+  margin-bottom: 15px;
+  font-style: italic;
 }
 
 .lobby-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
 }
 
 .btn-ready {
-    padding: 12px 30px;
-    font-size: 1rem;
-    background: linear-gradient(145deg, #4a8a6a, #2d5a4a);
-    border: 2px solid #4a8a6a;
-    border-radius: 8px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s;
+  padding: 12px 30px;
+  font-size: 1rem;
+  background: linear-gradient(145deg, #4a8a6a, #2d5a4a);
+  border: 2px solid #4a8a6a;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .btn-ready:hover {
-    background: linear-gradient(145deg, #5a9a7a, #3d7a5a);
-    border-color: #ffd700;
+  background: linear-gradient(145deg, #5a9a7a, #3d7a5a);
+  border-color: #ffd700;
 }
 
 .btn-ready.is-ready {
-    background: linear-gradient(145deg, #28a745, #1e7e34);
-    border-color: #28a745;
+  background: linear-gradient(145deg, #28a745, #1e7e34);
+  border-color: #28a745;
 }
 
 .btn-leave {
-    padding: 12px 20px;
-    font-size: 1rem;
-    background: rgba(220, 53, 69, 0.3);
-    border: 2px solid #dc3545;
-    border-radius: 8px;
-    color: #ff6b6b;
-    cursor: pointer;
-    transition: all 0.2s;
+  padding: 12px 20px;
+  font-size: 1rem;
+  background: rgba(220, 53, 69, 0.3);
+  border: 2px solid #dc3545;
+  border-radius: 8px;
+  color: #ff6b6b;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .btn-leave:hover {
-    background: rgba(220, 53, 69, 0.5);
+  background: rgba(220, 53, 69, 0.5);
 }
 
 .btn-back {
-    display: block;
-    margin-top: 20px;
-    padding: 10px;
-    background: none;
-    border: none;
-    color: #888;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: color 0.2s;
+  display: block;
+  margin-top: 20px;
+  padding: 10px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: color 0.2s;
 }
 
 .btn-back:hover {
-    color: #ffd700;
+  color: #ffd700;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    body {
-        overflow: auto;
-    }
-    
-    .game-container {
-        min-height: 100vh;
-        height: auto;
-    }
-    
-    .card {
-        width: 62px;
-        height: 87px;
-    }
-    
-    .card-corner {
-        font-size: 0.85rem;
-    }
-    
-    .card-center {
-        font-size: 1.7rem;
-    }
-    
-    /* Bottom player cards - taller with vertical layout */
-    .player-bottom .card {
-        width: 58px;
-        height: 95px;
-        margin: 0 -16px;
-    }
-    
-    .player-bottom .card .card-corner {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        line-height: 1;
-        gap: 1px;
-    }
-    
-    .player-bottom .card .card-rank {
-        font-size: 1.1rem;
-        font-weight: bold;
-        display: block;
-    }
-    
-    .player-bottom .card .card-suit {
-        font-size: 0.9rem;
-        display: block;
-    }
-    
-    .player-bottom .card .card-center {
-        font-size: 2rem;
-    }
-    
-    .table-center {
-        width: 260px;
-        height: 260px;
-    }
-    
-    .table-surface {
-        width: 220px;
-        height: 220px;
-        border-width: 6px;
-    }
-    
-    .table-card .card {
-        width: 55px;
-        height: 77px;
-    }
-    
-    .player-top .card {
-        margin: 0 -22px;
-    }
-    
-    .player-left .card, .player-right .card {
-        margin: -28px 0;
-        width: 48px;
-        height: 67px;
-    }
-    
-    .scoreboard {
-        font-size: 0.7rem;
-        padding: 8px;
-        max-width: 110px;
-    }
-    
-    .scoreboard h2 {
-        font-size: 0.9rem;
-    }
-    
-    .score-item {
-        gap: 10px;
-    }
-    
-    .current-player-info {
-        display: none;
-    }
-    
-    .game-status {
-        font-size: 0.8rem;
-        padding: 8px 15px;
-        max-width: 60%;
-        white-space: normal;
-        text-align: center;
-    }
-    
-    .sound-toggle {
-        transform: translateX(80px);
-    }
-    
-    .btn-sound, .btn-music {
-        width: 32px;
-        height: 32px;
-        font-size: 1rem;
-    }
-    
-    .player-label {
-        font-size: 0.75rem;
-        padding: 3px 10px;
-    }
-    
-    .player-top {
-        top: 80px;
-    }
-    
-    .player-bottom {
-        bottom: 10px;
-    }
-    
-    .player-left {
-        left: 5px;
-    }
-    
-    .player-right {
-        right: 5px;
-    }
-    
-    .taken-cards-stack {
-        bottom: auto;
+  body {
+    overflow: auto;
+  }
+
+  .game-container {
+    min-height: 100vh;
+    height: auto;
+  }
+
+  .card {
+    width: 62px;
+    height: 87px;
+  }
+
+  .card-corner {
+    font-size: 0.85rem;
+  }
+
+  .card-center {
+    font-size: 1.7rem;
+  }
+
+  /* Bottom player cards - taller with vertical layout */
+  .player-bottom .card {
+    width: 58px;
+    height: 95px;
+    margin: 0 -16px;
+  }
+
+  .player-bottom .card .card-corner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    gap: 1px;
+  }
+
+  .player-bottom .card .card-rank {
+    font-size: 1.1rem;
+    font-weight: bold;
+    display: block;
+  }
+
+  .player-bottom .card .card-suit {
+    font-size: 0.9rem;
+    display: block;
+  }
+
+  .player-bottom .card .card-center {
+    font-size: 2rem;
+  }
+
+  .table-center {
+    width: 260px;
+    height: 260px;
+  }
+
+  .table-surface {
+    width: 220px;
+    height: 220px;
+    border-width: 6px;
+  }
+
+  .table-card .card {
+    width: 55px;
+    height: 77px;
+  }
+
+  .player-top .card {
+    margin: 0 -22px;
+  }
+
+  .player-left .card,
+  .player-right .card {
+    margin: -28px 0;
+    width: 48px;
+    height: 67px;
+  }
+
+  .scoreboard {
+    font-size: 0.7rem;
+    padding: 8px;
+    max-width: 110px;
+  }
+
+  .scoreboard h2 {
+    font-size: 0.9rem;
+  }
+
+  .score-item {
+    gap: 10px;
+  }
+
+  .current-player-info {
+    display: none;
+  }
+
+  .game-status {
+    font-size: 0.8rem;
+    padding: 8px 15px;
+    max-width: 60%;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .sound-toggle {
+    transform: translateX(80px);
+  }
+
+  .btn-sound,
+  .btn-music {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .player-label {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+  }
+
+  .player-top {
+    top: 80px;
+  }
+
+  .player-bottom {
+    bottom: 10px;
+  }
+
+  .player-left {
+    left: 5px;
+  }
+
+  .player-right {
+    right: 5px;
+  }
+
+  .taken-cards-stack {
+    /* bottom: auto;
         top: 10px;
         right: auto;
         left: 50%;
-        transform: translateX(70px);
+        transform: translateX(70px); */
+    left: 50%;
+
+    top: unset;
+    bottom: 165px;
+    right: 90px;
+    transform: translateX(70px);
+  }
+
+  .stack-label {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+
+  .stack-cards {
+    width: 40px;
+    height: 56px;
+  }
+
+  .stack-card {
+    width: 40px;
+    height: 56px;
+  }
+
+  /* Modal mobile styles */
+  .modal-content {
+    min-width: auto;
+    width: 95%;
+    max-width: 350px;
+    padding: 20px 15px;
+  }
+
+  .modal-content h3 {
+    font-size: 1.2rem;
+  }
+
+  /* Pass modal - centered on mobile with card grid */
+  #pass-modal {
+    align-items: center;
+    padding-top: 0;
+    padding-bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    pointer-events: auto;
+  }
+
+  #pass-modal .modal-content {
+    border-radius: 15px;
+    width: 92%;
+    max-width: 400px;
+    padding: 20px 15px 25px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  #pass-modal .modal-content h3 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+
+  #pass-modal .modal-content p {
+    font-size: 0.85rem;
+    margin-bottom: 15px;
+    color: #aaa;
+  }
+
+  /* Card selection grid for passing */
+  .pass-cards-grid {
+    padding: 10px 6px;
+    gap: 4px;
+    background: rgba(80, 40, 20, 0.5);
+    border: 2px solid rgba(139, 69, 19, 0.5);
+  }
+
+  .pass-cards-grid .card {
+    width: 46px;
+    height: 64px;
+  }
+
+  .pass-cards-grid .card.selected {
+    transform: translateY(-8px) scale(1.05);
+  }
+
+  .selected-cards-label {
+    display: block;
+    margin-top: 5px;
+  }
+
+  .selected-cards {
+    gap: 8px;
+    min-height: 80px;
+    flex-wrap: wrap;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    margin-bottom: 15px;
+  }
+
+  .selected-cards .card {
+    width: 50px;
+    height: 70px;
+  }
+
+  .btn-confirm {
+    padding: 12px 30px;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Mode buttons */
+  .mode-buttons {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .btn-mode {
+    padding: 20px 25px;
+    min-width: 100%;
+  }
+
+  .mode-icon {
+    font-size: 2rem;
+  }
+
+  /* Lobby */
+  .lobby-content {
+    width: 95%;
+  }
+
+  /* Received cards - mobile positioning */
+  .received-cards-area {
+    /* bottom: 100px; */
+    bottom: 136px;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    flex-direction: row !important;
+    padding: 10px;
+  }
+
+  .received-cards-area.from-right,
+  .received-cards-area.from-left {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+  }
+
+  .received-card {
+    width: 50px;
+    height: 70px;
+    margin-left: -10px;
+  }
+
+  .received-cards-area.from-right .received-card {
+    margin-left: -10px;
+    margin-right: 0;
+  }
+
+  /* Taken cards viewer */
+  .taken-cards-viewer {
+    max-height: 70vh;
+  }
+
+  .taken-cards-grid {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .taken-cards-grid .card {
+    width: 45px;
+    height: 63px;
+  }
+
+  /* Mobile Received Cards Indicator */
+  .mobile-received-indicator {
+    position: fixed;
+    /* bottom: 100px; */
+    bottom: 155px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #4a8a6a 0%, #2d5a4a 100%);
+    border: 2px solid #ffd700;
+    border-radius: 25px;
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 200;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    animation: bounceIn 0.5s ease;
+  }
+
+  .mobile-received-indicator.hidden {
+    display: none;
+  }
+
+  .mobile-received-indicator .received-icon {
+    font-size: 1.3rem;
+  }
+
+  .mobile-received-indicator .received-count {
+    background: #ffd700;
+    color: #1a1a1a;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .mobile-received-indicator .received-text {
+    color: #fff;
+    font-size: 0.85rem;
+  }
+
+  @keyframes bounceIn {
+    0% {
+      transform: translateX(-50%) scale(0);
     }
-    
-    .stack-label {
-        font-size: 0.7rem;
-        padding: 3px 8px;
+    50% {
+      transform: translateX(-50%) scale(1.15);
     }
-    
-    .stack-cards {
-        width: 40px;
-        height: 56px;
+    100% {
+      transform: translateX(-50%) scale(1);
     }
-    
-    .stack-card {
-        width: 40px;
-        height: 56px;
-    }
-    
-    /* Modal mobile styles */
-    .modal-content {
-        min-width: auto;
-        width: 95%;
-        max-width: 350px;
-        padding: 20px 15px;
-    }
-    
-    .modal-content h3 {
-        font-size: 1.2rem;
-    }
-    
-    /* Pass modal - centered on mobile with card grid */
-    #pass-modal {
-        align-items: center;
-        padding-top: 0;
-        padding-bottom: 0;
-        background: rgba(0, 0, 0, 0.9);
-        pointer-events: auto;
-    }
-    
-    #pass-modal .modal-content {
-        border-radius: 15px;
-        width: 92%;
-        max-width: 400px;
-        padding: 20px 15px 25px;
-        max-height: 85vh;
-        overflow-y: auto;
-    }
-    
-    #pass-modal .modal-content h3 {
-        font-size: 1.1rem;
-        margin-bottom: 10px;
-    }
-    
-    #pass-modal .modal-content p {
-        font-size: 0.85rem;
-        margin-bottom: 15px;
-        color: #aaa;
-    }
-    
-    /* Card selection grid for passing */
-    .pass-cards-grid {
-        padding: 10px 6px;
-        gap: 4px;
-        background: rgba(80, 40, 20, 0.5);
-        border: 2px solid rgba(139, 69, 19, 0.5);
-    }
-    
-    .pass-cards-grid .card {
-        width: 46px;
-        height: 64px;
-    }
-    
-    .pass-cards-grid .card.selected {
-        transform: translateY(-8px) scale(1.05);
-    }
-    
-    .selected-cards-label {
-        display: block;
-        margin-top: 5px;
-    }
-    
-    .selected-cards {
-        gap: 8px;
-        min-height: 80px;
-        flex-wrap: wrap;
-        padding: 10px;
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 10px;
-        margin-bottom: 15px;
-    }
-    
-    .selected-cards .card {
-        width: 50px;
-        height: 70px;
-    }
-    
-    .btn-confirm {
-        padding: 12px 30px;
-        font-size: 1rem;
-        min-height: 48px;
-    }
-    
-    /* Mode buttons */
-    .mode-buttons {
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .btn-mode {
-        padding: 20px 25px;
-        min-width: 100%;
-    }
-    
-    .mode-icon {
-        font-size: 2rem;
-    }
-    
-    /* Lobby */
-    .lobby-content {
-        width: 95%;
-    }
-    
-    /* Received cards - mobile positioning */
-    .received-cards-area {
-        /* bottom: 100px; */
-        bottom: 136px;
-        left: 50% !important;
-        right: auto !important;
-        transform: translateX(-50%) !important;
-        flex-direction: row !important;
-        padding: 10px;
-    }
-    
-    .received-cards-area.from-right,
-    .received-cards-area.from-left {
-        left: 50% !important;
-        right: auto !important;
-        transform: translateX(-50%) !important;
-    }
-    
-    .received-card {
-        width: 50px;
-        height: 70px;
-        margin-left: -10px;
-    }
-    
-    .received-cards-area.from-right .received-card {
-        margin-left: -10px;
-        margin-right: 0;
-    }
-    
-    /* Taken cards viewer */
-    .taken-cards-viewer {
-        max-height: 70vh;
-    }
-    
-    .taken-cards-grid {
-        padding: 10px;
-        gap: 8px;
-    }
-    
-    .taken-cards-grid .card {
-        width: 45px;
-        height: 63px;
-    }
-    
-    /* Mobile Received Cards Indicator */
-    .mobile-received-indicator {
-        position: fixed;
-        /* bottom: 100px; */
-        bottom: 155px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, #4a8a6a 0%, #2d5a4a 100%);
-        border: 2px solid #ffd700;
-        border-radius: 25px;
-        padding: 10px 18px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        z-index: 200;
-        cursor: pointer;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-        animation: bounceIn 0.5s ease;
-    }
-    
-    .mobile-received-indicator.hidden {
-        display: none;
-    }
-    
-    .mobile-received-indicator .received-icon {
-        font-size: 1.3rem;
-    }
-    
-    .mobile-received-indicator .received-count {
-        background: #ffd700;
-        color: #1a1a1a;
-        border-radius: 50%;
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
-    
-    .mobile-received-indicator .received-text {
-        color: #fff;
-        font-size: 0.85rem;
-    }
-    
-    @keyframes bounceIn {
-        0% { transform: translateX(-50%) scale(0); }
-        50% { transform: translateX(-50%) scale(1.15); }
-        100% { transform: translateX(-50%) scale(1); }
-    }
+  }
 }
 
 /* Mobile Card Carousel for passing phase - DISABLED, keeping desktop behavior */
@@ -1476,123 +1521,133 @@ body {
 .mobile-select-cards-btn,
 .mobile-pass-direction,
 .mobile-selection-preview {
-    display: none !important;
+  display: none !important;
 }
 
 /* Mobile picker count (top-right of mobile picker) */
 .mobile-card-picker-count,
 #mobile-picker-count {
-    font-size: 1.05rem;
-    font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 /* Small phone screens */
 @media (max-width: 480px) {
-    .card {
-        width: 52px;
-        height: 73px;
-    }
-    
-    .card-corner {
-        font-size: 0.7rem;
-    }
-    
-    .card-center {
-        font-size: 1.4rem;
-    }
-    
-    /* Bottom player cards - taller with vertical layout */
-    .player-bottom .card {
-        width: 52px;
-        height: 85px;
-        margin: 0 -14px;
-    }
-    
-    .player-bottom .card .card-corner {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        line-height: 1;
-        gap: 1px;
-    }
-    
-    .player-bottom .card .card-rank {
-        font-size: 1rem;
-        font-weight: bold;
-        display: block;
-    }
-    
-    .player-bottom .card .card-suit {
-        font-size: 0.8rem;
-        display: block;
-    }
-    
-    .player-bottom .card .card-center {
-        font-size: 1.8rem;
-    }
-    
-    .player-top .card {
-        margin: 0 -20px;
-    }
-    
-    .player-left .card, .player-right .card {
-        margin: -25px 0;
-        width: 42px;
-        height: 59px;
-    }
-    
-    .table-center {
-        width: 200px;
-        height: 200px;
-    }
-    
-    .table-surface {
-        width: 165px;
-        height: 165px;
-    }
-    
-    .table-card .card {
-        width: 42px;
-        height: 59px;
-    }
-    
-    .scoreboard {
-        max-width: 95px;
-        padding: 6px;
-    }
-    
-    .scoreboard h2 {
-        font-size: 0.8rem;
-        margin-bottom: 5px;
-    }
-    
-    .score-item {
-        font-size: 0.65rem;
-        gap: 5px;
-    }
-    
-    .game-status {
-        font-size: 0.7rem;
-        padding: 6px 12px;
-    }
-    
-    /* Pass cards grid on small phones */
-    .pass-cards-grid {
-        padding: 8px 5px;
-        gap: 3px;
-    }
-    
-    .pass-cards-grid .card {
-        width: 42px;
-        height: 59px;
-    }
-    
-    .selected-cards .card {
-        width: 40px;
-        height: 56px;
-    }
-    
-    #pass-modal .modal-content {
-        padding: 15px 10px 20px;
-    }
+  .card {
+    width: 52px;
+    height: 73px;
+  }
+
+  .card-corner {
+    font-size: 0.7rem;
+  }
+
+  .card-center {
+    font-size: 1.4rem;
+  }
+
+  /* Bottom player cards - taller with vertical layout */
+  .player-bottom .card {
+    width: 52px;
+    height: 85px;
+    margin: 0 -14px;
+  }
+
+  .player-bottom .card .card-corner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    gap: 1px;
+  }
+
+  .player-bottom .card .card-rank {
+    font-size: 1rem;
+    font-weight: bold;
+    display: block;
+  }
+
+  .player-bottom .card .card-suit {
+    font-size: 0.8rem;
+    display: block;
+  }
+
+  .player-bottom .card .card-center {
+    font-size: 1.8rem;
+  }
+
+  .player-top .card {
+    margin: 0 -20px;
+  }
+
+  .player-left .card,
+  .player-right .card {
+    margin: -25px 0;
+    width: 42px;
+    height: 59px;
+  }
+
+  .table-center {
+    width: 200px;
+    height: 200px;
+  }
+
+  .table-surface {
+    width: 165px;
+    height: 165px;
+  }
+
+  .table-card .card {
+    width: 42px;
+    height: 59px;
+  }
+
+  .scoreboard {
+    max-width: 95px;
+    padding: 6px;
+  }
+
+  .scoreboard h2 {
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+  }
+
+  .score-item {
+    font-size: 0.65rem;
+    gap: 5px;
+  }
+
+  .game-status {
+    font-size: 0.7rem;
+    padding: 6px 12px;
+  }
+
+  /* Pass cards grid on small phones */
+  .pass-cards-grid {
+    padding: 8px 5px;
+    gap: 3px;
+  }
+
+  .pass-cards-grid .card {
+    width: 42px;
+    height: 59px;
+  }
+
+  .selected-cards .card {
+    width: 40px;
+    height: 56px;
+  }
+
+  #pass-modal .modal-content {
+    padding: 15px 10px 20px;
+  }
+
+  /* Move sound/music icons under the scoreboard on small screens */
+  .sound-toggle {
+    top: 115px;
+    left: 10px;
+    transform: none;
+    flex-direction: row;
+    gap: 8px;
+  }
 }
