@@ -900,6 +900,13 @@ function handleRoundOver(data) {
     updateScores();
     
     // Show round over modal with player names and HMAR
+    // Ensure client game state matches server: mark roundOver and clear transient play state
+    gameState.gamePhase = 'roundOver';
+    gameState.currentTrick = [];
+    gameState.leadSuit = null;
+    // Clear any played flag so next round starts clean
+    if (typeof hasPlayedCard !== 'undefined') hasPlayedCard = false;
+    renderAllHands();
     showRoundOverModalMultiplayer(data.loser);
 }
 

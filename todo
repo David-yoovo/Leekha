@@ -21,6 +21,7 @@ but if one of us click next round, and the other player didnt, it will start dea
 
 ------
 1. make the cards span more when they are less
-2. new game after full round (game ends) finish does not work
+2. new game after full round (game ends) finishes does not work
 3. sometimes after the round finishes it sometimes only allowed me to put one specific type of card 
-4. when someone eat the lady it must go to the one to the right
+4. when someone eats the lady, the turn must go to the one to their right (example if bottom ate the lady leekha, the turn must be the one on their right)
+5. 
