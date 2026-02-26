@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/server/Leekha/backend
-ExecStart=/server/Leekha/backend/start.sh
+WorkingDirectory=/root/server/Leekha/backend
+ExecStart=/root/server/Leekha/backend/start.sh
 Restart=on-failure
 Environment=NODE_ENV=production
 SyslogIdentifier=leekha-server

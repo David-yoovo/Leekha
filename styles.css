@@ -490,7 +490,7 @@ body {
 /* Your Turn banner */
 .your-turn {
   position: absolute;
-  top: 40%;
+  top: 86%;
   left: 50%;
   transform: translate(-50%, -50%) scale(0.9);
   background: rgba(255,215,0,0.95);
@@ -515,7 +515,7 @@ body {
 /* Special announcement (QoS / 10♦ / STRIKE) */
 .special-announcement {
   position: absolute;
-  top: 30%;
+  top: 78%;
   left: 50%;
   transform: translate(-50%, -50%) scale(0.95);
   background: rgba(0,0,0,0.75);
