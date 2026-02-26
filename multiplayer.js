@@ -407,6 +407,8 @@ async function handleMultiplayerGameStart(state) {
         
         // Hide round over modal if it was open (new round starting)
         hideRoundOverModal();
+        // Also ensure the game-over modal is closed when a new multiplayer game starts
+        if (typeof hideGameOverModal === 'function') hideGameOverModal();
         
         // Reset pass state for new round
         hasPassed = false;
