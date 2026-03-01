@@ -122,30 +122,22 @@ function connectToServer() {
         // Stay on menu
     });
 
-    // Another player disconnected temporarily (grace period)
-    socket.on('playerDisconnectedTemporary', (data) => {
-        console.log('Player disconnected temporarily:', data);
-        showPlayerDisconnectedBanner(data.username, data.gracePeriod);
+    // Game paused because a player disconnected/left
+    socket.on('gamePaused', (data) => {
+        console.log('Game paused:', data);
+        showGamePausedOverlay(data.username, data.roomId || myRoomId);
     });
 
-    // Player reconnected
-    socket.on('playerReconnected', (data) => {
-        console.log('Player reconnected:', data);
-        hidePlayerDisconnectedBanner();
-        showReconnectToast(`${data.username} reconnected!`);
-    });
-
-    // Player's reconnect grace period expired — replaced by bot
-    socket.on('playerReconnectExpired', (data) => {
-        console.log('Player reconnect expired:', data);
-        hidePlayerDisconnectedBanner();
-        showReconnectToast(data.message || 'Player replaced by bot.');
-    });
-
-    // Player replaced by bot (immediate, not grace period)
-    socket.on('playerReplacedByBot', (data) => {
-        console.log('Player replaced by bot:', data);
-        showReconnectToast(data.message);
+    // Game resumed — a player filled the vacant spot
+    socket.on('gameResumed', (data) => {
+        console.log('Game resumed:', data);
+        hideGamePausedOverlay();
+        showReconnectToast(`${data.username} joined the game!`);
+        // Update player names
+        if (data.playerNames) {
+            multiplayerNames = data.playerNames;
+            updatePlayerLabels();
+        }
     });
 
     socket.on('connect_error', (error) => {
@@ -292,11 +284,7 @@ function connectToServer() {
         }
     });
 
-    socket.on('playerDisconnected', (data) => {
-        // This event is for legacy/fallback — the new flow uses
-        // playerDisconnectedTemporary + playerReconnected/playerReconnectExpired
-        showReconnectToast(data.message);
-    });
+
 
     socket.on('error', (data) => {
         if (data.targetPlayer === socket.id) {
@@ -358,7 +346,7 @@ function backToMenu() {
     isHandlingRoundStart = false;
     clearSession();
     hideReconnectingBanner();
-    hidePlayerDisconnectedBanner();
+    hideGamePausedOverlay();
     updateReadyButton();
     hideLobby();
     startModal.classList.add('active');
@@ -536,6 +524,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-back-to-menu').addEventListener('click', backToMenu);
+
+    // Leave game button (visible during gameplay)
+    const leaveBtn = document.getElementById('btn-leave-game');
+    if (leaveBtn) {
+        leaveBtn.addEventListener('click', () => {
+            if (isMultiplayer && myRoomId) {
+                if (confirm('Are you sure you want to leave the game? Your spot will be held for another player.')) {
+                    socket.emit('leaveRoom');
+                    clearSession();
+                    myRoomId = '';
+                    isMultiplayer = false;
+                    currentRoundNumber = 0;
+                    isHandlingRoundStart = false;
+                    hideGamePausedOverlay();
+                    hideReconnectingBanner();
+                    hideLobby();
+                    startModal.classList.add('active');
+                }
+            }
+        });
+    }
 });
 
 // Multiplayer game handlers
@@ -559,6 +568,10 @@ async function handleMultiplayerGameStart(state) {
     
     try {
         hideLobby();
+        
+        // Show leave game button during multiplayer games
+        const leaveBtn = document.getElementById('btn-leave-game');
+        if (leaveBtn) leaveBtn.style.display = 'block';
         
         // Hide round over modal if it was open (new round starting)
         hideRoundOverModal();
@@ -1335,46 +1348,35 @@ function hideReconnectingBanner() {
 }
 
 /**
- * Show a banner when another player disconnects, with countdown timer.
+ * Show an overlay when the game is paused due to a player leaving.
  */
-function showPlayerDisconnectedBanner(username, gracePeriod) {
-    let banner = document.getElementById('player-disconnected-banner');
-    if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'player-disconnected-banner';
-        banner.className = 'player-disconnected-banner';
-        document.querySelector('.game-container').appendChild(banner);
+function showGamePausedOverlay(username, roomId) {
+    let overlay = document.getElementById('game-paused-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'game-paused-overlay';
+        overlay.className = 'game-paused-overlay';
+        document.querySelector('.game-container').appendChild(overlay);
     }
-    
-    const endTime = Date.now() + gracePeriod;
-    
-    function updateCountdown() {
-        const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
-        banner.innerHTML = `
-            <span class="disconnect-icon">⏳</span>
-            <span class="disconnect-text">${username} disconnected. Waiting for reconnection... (${remaining}s)</span>
-        `;
-        if (remaining <= 0) {
-            clearInterval(reconnectCountdownInterval);
-            reconnectCountdownInterval = null;
-        }
-    }
-    
-    updateCountdown();
-    if (reconnectCountdownInterval) clearInterval(reconnectCountdownInterval);
-    reconnectCountdownInterval = setInterval(updateCountdown, 1000);
-    
-    banner.classList.add('active');
+    overlay.innerHTML = `
+        <div class="paused-content">
+            <div class="paused-icon">⏸️</div>
+            <h3>Game Paused</h3>
+            <p><strong>${username}</strong> left the game.</p>
+            <p>Waiting for a new player to join...</p>
+            <div class="paused-room-code">
+                <span>Share this room code:</span>
+                <span class="code">${roomId || myRoomId}</span>
+            </div>
+        </div>
+    `;
+    overlay.classList.add('active');
 }
 
-function hidePlayerDisconnectedBanner() {
-    const banner = document.getElementById('player-disconnected-banner');
-    if (banner) {
-        banner.classList.remove('active');
-    }
-    if (reconnectCountdownInterval) {
-        clearInterval(reconnectCountdownInterval);
-        reconnectCountdownInterval = null;
+function hideGamePausedOverlay() {
+    const overlay = document.getElementById('game-paused-overlay');
+    if (overlay) {
+        overlay.classList.remove('active');
     }
 }
 
@@ -1531,4 +1533,15 @@ function handleGameReconnect(state) {
     
     updateCurrentPlayerInfo();
     renderPlayerHand('bottom');
+    
+    // Show leave game button during multiplayer games
+    const leaveBtn = document.getElementById('btn-leave-game');
+    if (leaveBtn && isMultiplayer) {
+        leaveBtn.style.display = 'block';
+    }
+    
+    // If the game is paused (vacant positions), show the overlay
+    if (state.paused && state.vacantPositions && state.vacantPositions.length > 0) {
+        showGamePausedOverlay('A player', myRoomId);
+    }
 }

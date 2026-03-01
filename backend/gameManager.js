@@ -1022,7 +1022,7 @@ class GameManager {
         }
     }
 
-    // Handle player disconnect during game - replace with bot and continue
+    // Handle player disconnect during game — pause and keep slot vacant
     handlePlayerDisconnect(roomId, playerId) {
         const game = this.games.get(roomId);
         if (!game) return;
@@ -1033,87 +1033,134 @@ class GameManager {
         const playerData = game.players.get(playerId);
         if (!playerData) return;
 
-        // Create bot to replace the player
-        const botId = `bot-${position}`;
-        const botNames = ['Bot Ali', 'Bot Sara', 'Bot Omar'];
-        const botIndex = ['left', 'top', 'right'].indexOf(position);
-        const botName = botNames[botIndex >= 0 ? botIndex : 0];
+        const username = playerData.username;
 
-        // Transfer all game state to the bot
-        game.players.set(botId, {
-            ...playerData,
-            isBot: true,
-            username: botName
-        });
+        // Remove the player from game state
         game.players.delete(playerId);
 
-        // Notify remaining players
-        this.io.to(roomId).emit('playerReplacedByBot', {
-            position: position,
-            botName: botName,
-            message: `${playerData.username} left. ${botName} is now playing.`
-        });
+        // Mark position as vacant and pause the game
+        if (!game.vacantPositions) game.vacantPositions = new Set();
+        game.vacantPositions.add(position);
+        game.paused = true;
 
-        // If it was the bot's turn, make the bot play
-        if (game.currentPlayer === position) {
-            setTimeout(() => {
-                this.executeBotPlay(roomId);
-            }, 1000);
-        }
-        
-        // If we're in passing phase, check if the bot needs to pass
-        if (game.phase === 'passing' && game.passedCards[position].length === 0) {
-            this.scheduleBotAction(() => this.executeBotPass(roomId, position), 500);
-        }
-        
-        // If we're in roundOver or gameOver, auto-ready the bot
-        if (game.phase === 'roundOver' || game.phase === 'gameOver') {
-            game.readyForNextRound[position] = true;
-            if (game.phase === 'roundOver') {
-                this.checkAllReadyForNextRound(roomId);
-            } else {
-                this.checkAllReadyForNextGame(roomId);
-            }
+        console.log(`Game paused: ${username} left position ${position} in room ${roomId}`);
+
+        // Notify remaining human players about the pause
+        const positionOrder = ['bottom', 'left', 'top', 'right'];
+
+        for (const [pid, pdata] of game.players) {
+            if (pid.startsWith('bot-')) continue;
+            
+            const myPosition = game.getPositionByPlayerId(pid);
+            const myIndex = positionOrder.indexOf(myPosition);
+            const actualIdx = positionOrder.indexOf(position);
+            const relativePosition = positionOrder[(actualIdx - myIndex + 4) % 4];
+            
+            this.io.to(pid).emit('gamePaused', {
+                targetPlayer: pid,
+                vacantPosition: relativePosition,
+                username: username,
+                message: `${username} left the game. Waiting for a player to join...`,
+                roomId: roomId
+            });
         }
 
         // Check if all humans have left
-        const room = this.roomManager.getRoom(roomId);
-        if (room && room.isEmpty()) {
-            // All humans left, end the game
-            this.games.delete(roomId);
-            this.roomManager.deleteRoom(roomId);
+        let humans = 0;
+        for (const [pid] of game.players) {
+            if (!pid.startsWith('bot-')) humans++;
+        }
+        
+        if (humans === 0) {
+            const room = this.roomManager.getRoom(roomId);
+            if (room) {
+                this.games.delete(roomId);
+                this.roomManager.deleteRoom(roomId);
+                console.log(`All players left room ${roomId}, cleaned up`);
+            }
         }
     }
 
     /**
-     * Handle a player reconnecting during an active game.
-     * Swaps the old player ID for the new socket ID in game state.
+     * Handle a new player taking over a vacant position mid-game.
+     * The new player inherits the hand, scores, etc. of that position.
      */
-    handlePlayerReconnect(roomId, oldPlayerId, newPlayerId, username) {
+    handlePlayerTakeover(roomId, newPlayerId, username, position) {
         const game = this.games.get(roomId);
         if (!game) return;
 
-        const position = game.getPositionByPlayerId(oldPlayerId);
-        if (!position) return;
-
-        const playerData = game.players.get(oldPlayerId);
-        if (!playerData) return;
-
-        // Swap player ID in game state
+        // Add the new player to the game
         game.players.set(newPlayerId, {
-            ...playerData,
-            isBot: false,
-            isDisconnected: false,
-            username: username || playerData.username
+            username: username,
+            position: position,
+            isBot: false
         });
-        game.players.delete(oldPlayerId);
 
-        console.log(`Game state updated: ${oldPlayerId} -> ${newPlayerId} at position ${position}`);
+        // Remove from vacant set
+        if (!game.vacantPositions) game.vacantPositions = new Set();
+        game.vacantPositions.delete(position);
+
+        // If no more vacant positions, un-pause the game
+        const wasResumed = game.vacantPositions.size === 0;
+        if (wasResumed) {
+            game.paused = false;
+        }
+
+        console.log(`Player ${username} took over position ${position} in room ${roomId}. Paused: ${game.paused}`);
+
+        // Notify other players that someone joined and game may resume
+        const positionOrder = ['bottom', 'left', 'top', 'right'];
+        const actualIdx = positionOrder.indexOf(position);
+
+        for (const [pid, pdata] of game.players) {
+            if (pid.startsWith('bot-') || pid === newPlayerId) continue;
+            
+            const myPosition = game.getPositionByPlayerId(pid);
+            const myIndex = positionOrder.indexOf(myPosition);
+            const relativePosition = positionOrder[(actualIdx - myIndex + 4) % 4];
+            
+            this.io.to(pid).emit('gameResumed', {
+                targetPlayer: pid,
+                filledPosition: relativePosition,
+                username: username,
+                message: `${username} joined the game!`,
+                resumed: wasResumed,
+                playerNames: this.getRelativePlayerNames(game, pid)
+            });
+        }
+
+        // If it was this position's turn and game just resumed, notify
+        if (wasResumed && game.phase === 'playing' && game.currentPlayer === position) {
+            setTimeout(() => this.broadcastGameState(roomId, 'turnChanged'), 500);
+        }
     }
 
     /**
-     * Get full game state for a reconnecting player.
-     * Returns the personalized state needed to rebuild the client UI.
+     * Get relative player names for a specific player's perspective.
+     */
+    getRelativePlayerNames(game, playerId) {
+        const positionOrder = ['bottom', 'left', 'top', 'right'];
+        const myPosition = game.getPositionByPlayerId(playerId);
+        const myIndex = positionOrder.indexOf(myPosition);
+        const playerNames = {};
+        
+        for (let i = 0; i < 4; i++) {
+            const actualPosition = positionOrder[(myIndex + i) % 4];
+            const relativePosition = positionOrder[i];
+            const pid = game.getPlayerIdByPosition(actualPosition);
+            if (pid) {
+                const pdata = game.players.get(pid);
+                playerNames[relativePosition] = pdata?.username || `Player ${i + 1}`;
+            } else {
+                playerNames[relativePosition] = 'Waiting...';
+            }
+        }
+        
+        return playerNames;
+    }
+
+    /**
+     * Get full game state for a player joining/reconnecting mid-game.
      */
     getReconnectState(roomId, playerId) {
         const game = this.games.get(roomId);
@@ -1121,13 +1168,10 @@ class GameManager {
 
         const personalState = this.getPersonalizedState(game, playerId);
         
-        // Add extra reconnection info
         return {
             ...personalState,
             isReconnect: true,
-            // Include cards on the table (current trick)
             currentTrickCards: personalState.currentTrick,
-            // Include taken cards for all positions
             allTakenCards: personalState.takenCards
         };
     }
@@ -1212,17 +1256,27 @@ class GameManager {
         const myPosition = game.getPositionByPlayerId(playerId);
         
         // Build player names map (relative to this player's view)
-        // From this player's perspective, they are always "bottom"
         const playerNames = {};
         const positionOrder = ['bottom', 'left', 'top', 'right'];
         const myIndex = positionOrder.indexOf(myPosition);
         
+        // Track vacant positions relative to this player
+        const vacantSet = game.vacantPositions || new Set();
+        const relativeVacant = [];
+        
         for (let i = 0; i < 4; i++) {
             const actualPosition = positionOrder[(myIndex + i) % 4];
-            const relativePosition = positionOrder[i]; // bottom, left, top, right from player's view
+            const relativePosition = positionOrder[i];
             const pid = game.getPlayerIdByPosition(actualPosition);
-            const pdata = game.players.get(pid);
-            playerNames[relativePosition] = pdata?.username || `Player ${i + 1}`;
+            if (pid) {
+                const pdata = game.players.get(pid);
+                playerNames[relativePosition] = pdata?.username || `Player ${i + 1}`;
+            } else if (vacantSet.has(actualPosition)) {
+                playerNames[relativePosition] = 'Waiting for player...';
+                relativeVacant.push(relativePosition);
+            } else {
+                playerNames[relativePosition] = `Player ${i + 1}`;
+            }
         }
         
         // Convert current player position to relative
@@ -1256,18 +1310,21 @@ class GameManager {
             return {
                 position: relPos,
                 cardCount: game.hands[actualPos]?.length || 0,
-                hasPassed: game.passedCards[actualPos]?.length === 3
+                hasPassed: game.passedCards[actualPos]?.length === 3,
+                isVacant: vacantSet.has(actualPos)
             };
         });
         
         return {
             phase: game.phase,
+            paused: game.paused || false,
+            vacantPositions: relativeVacant,
             roundNumber: game.roundNumber,
             trickNumber: game.trickNumber,
             currentPlayer: relativeCurrentPlayer,
             leadSuit: game.leadSuit,
             passDirection: game.passDirection,
-            myPosition: 'bottom', // Always bottom from player's perspective
+            myPosition: 'bottom',
             myHand: game.hands[myPosition] || [],
             myReceivedCards: game.receivedCards[myPosition] || [],
             hasPassed: game.passedCards[myPosition]?.length === 3,
