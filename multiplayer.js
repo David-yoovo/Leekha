@@ -3,6 +3,7 @@ let socket = null;
 let isMultiplayer = false;
 let myUsername = '';
 let myRoomId = '';
+let myUserId = ''; // Persistent user ID for reconnection
 let isReady = false;
 let multiplayerNames = {}; // Store player names by position
 let hasPassed = false; // Track if we've confirmed our pass
@@ -11,9 +12,46 @@ let isAnimatingTrick = false; // Prevent race between trick animation and newTri
 let hasPlayedCard = false; // Prevent playing multiple cards in one turn
 let isHandlingRoundStart = false; // Prevent duplicate round handling
 let currentRoundNumber = 0; // Track current round to prevent duplicate handling
+let isReconnecting = false; // Whether we're in the process of reconnecting
+let reconnectCountdownInterval = null; // Timer for UI countdown
 
 // Backend server URL - change this to your deployed backend URL
 const BACKEND_URL = ''; // Empty string = same origin (works for Railway full deployment)
+
+// Persistent userId management (localStorage)
+function getOrCreateUserId() {
+    let userId = localStorage.getItem('leekha_userId');
+    if (!userId) {
+        userId = generateUUID();
+        localStorage.setItem('leekha_userId', userId);
+    }
+    return userId;
+}
+
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+function saveSession(roomId, username) {
+    localStorage.setItem('leekha_roomId', roomId || '');
+    localStorage.setItem('leekha_username', username || '');
+}
+
+function clearSession() {
+    localStorage.removeItem('leekha_roomId');
+    localStorage.removeItem('leekha_username');
+}
+
+function getSavedSession() {
+    return {
+        roomId: localStorage.getItem('leekha_roomId') || '',
+        username: localStorage.getItem('leekha_username') || ''
+    };
+}
 
 // DOM Elements
 const startModal = document.getElementById('start-modal');
@@ -26,30 +64,115 @@ const waitingSection = document.getElementById('waiting-section');
 function connectToServer() {
     if (socket) return;
     
-    socket = io(BACKEND_URL || undefined);
+    myUserId = getOrCreateUserId();
+    const savedSession = getSavedSession();
+    
+    socket = io(BACKEND_URL || undefined, {
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000
+    });
     
     socket.on('connect', () => {
         console.log('Connected to server');
+        // Authenticate with persistent userId
+        socket.emit('authenticate', {
+            userId: myUserId,
+            username: savedSession.username || myUsername || null
+        });
+    });
+
+    // Handle authentication response
+    socket.on('authenticated', (data) => {
+        myUserId = data.userId;
+        localStorage.setItem('leekha_userId', data.userId);
+        
+        if (data.username) {
+            myUsername = data.username;
+        }
+        
+        if (data.isReconnect && data.previousRoomId) {
+            console.log('Server detected active session in room:', data.previousRoomId);
+            isReconnecting = true;
+            showReconnectingBanner('Reconnecting to your game...');
+        }
+    });
+
+    // Handle successful reconnection to a game
+    socket.on('reconnected', (data) => {
+        console.log('Reconnected to game!', data);
+        isReconnecting = false;
+        isMultiplayer = true;
+        myRoomId = data.roomId;
+        
+        hideReconnectingBanner();
+        showReconnectToast(data.message || 'Reconnected!');
+        
+        // Restore the game state
+        handleGameReconnect(data.state);
+    });
+
+    // Handle failed reconnection
+    socket.on('reconnectFailed', (data) => {
+        console.log('Reconnect failed:', data.message);
+        isReconnecting = false;
+        hideReconnectingBanner();
+        clearSession();
+        // Stay on menu
+    });
+
+    // Another player disconnected temporarily (grace period)
+    socket.on('playerDisconnectedTemporary', (data) => {
+        console.log('Player disconnected temporarily:', data);
+        showPlayerDisconnectedBanner(data.username, data.gracePeriod);
+    });
+
+    // Player reconnected
+    socket.on('playerReconnected', (data) => {
+        console.log('Player reconnected:', data);
+        hidePlayerDisconnectedBanner();
+        showReconnectToast(`${data.username} reconnected!`);
+    });
+
+    // Player's reconnect grace period expired — replaced by bot
+    socket.on('playerReconnectExpired', (data) => {
+        console.log('Player reconnect expired:', data);
+        hidePlayerDisconnectedBanner();
+        showReconnectToast(data.message || 'Player replaced by bot.');
+    });
+
+    // Player replaced by bot (immediate, not grace period)
+    socket.on('playerReplacedByBot', (data) => {
+        console.log('Player replaced by bot:', data);
+        showReconnectToast(data.message);
     });
 
     socket.on('connect_error', (error) => {
         console.error('Connection error:', error);
-        showConnectionError();
+        if (!isReconnecting) {
+            showConnectionError();
+        }
     });
 
-    socket.on('disconnect', () => {
-        console.log('Disconnected from server');
-        showConnectionError();
+    socket.on('disconnect', (reason) => {
+        console.log('Disconnected from server:', reason);
+        if (myRoomId && isMultiplayer) {
+            // Don't go back to menu — show reconnecting UI
+            showReconnectingBanner('Connection lost. Reconnecting...');
+        }
     });
 
     socket.on('usernameSet', (data) => {
         myUsername = data.username;
+        saveSession(myRoomId, myUsername);
         document.getElementById('display-name').textContent = myUsername;
         showSection('room');
     });
 
     socket.on('roomCreated', (data) => {
         myRoomId = data.roomId;
+        saveSession(myRoomId, myUsername);
         document.getElementById('current-room-code').textContent = myRoomId;
         updatePlayersUI(data.room);
         showSection('waiting');
@@ -57,6 +180,7 @@ function connectToServer() {
 
     socket.on('roomJoined', (data) => {
         myRoomId = data.roomId;
+        saveSession(myRoomId, myUsername);
         document.getElementById('current-room-code').textContent = myRoomId;
         updatePlayersUI(data.room);
         showSection('waiting');
@@ -169,8 +293,9 @@ function connectToServer() {
     });
 
     socket.on('playerDisconnected', (data) => {
-        alert(data.message);
-        backToMenu();
+        // This event is for legacy/fallback — the new flow uses
+        // playerDisconnectedTemporary + playerReconnected/playerReconnectExpired
+        showReconnectToast(data.message);
     });
 
     socket.on('error', (data) => {
@@ -205,6 +330,14 @@ function showSection(section) {
 function showLobby() {
     startModal.classList.remove('active');
     lobbyModal.classList.add('active');
+    
+    // Pre-fill username from saved session
+    const saved = getSavedSession();
+    if (saved.username) {
+        const nameInput = document.getElementById('player-name');
+        if (nameInput) nameInput.value = saved.username;
+    }
+    
     showSection('name');
     connectToServer();
 }
@@ -219,9 +352,13 @@ function backToMenu() {
         myRoomId = '';
     }
     isReady = false;
+    isReconnecting = false;
     // Reset round tracking for new games
     currentRoundNumber = 0;
     isHandlingRoundStart = false;
+    clearSession();
+    hideReconnectingBanner();
+    hidePlayerDisconnectedBanner();
     updateReadyButton();
     hideLobby();
     startModal.classList.add('active');
@@ -239,18 +376,19 @@ function updatePlayersUI(room) {
     for (const pos of positions) {
         const player = room.players.find(p => p.position === pos);
         const slot = document.createElement('div');
-        slot.className = `player-slot ${player ? 'filled' : 'empty'} ${player?.isBot ? 'bot' : ''}`;
+        slot.className = `player-slot ${player ? 'filled' : 'empty'} ${player?.isBot ? 'bot' : ''} ${player?.isDisconnected ? 'disconnected' : ''}`;
         
         if (player) {
             const isMe = player.id === socket.id;
             const isBot = player.isBot;
+            const isDisconnected = player.isDisconnected;
             slot.innerHTML = `
                 <div class="player-info">
                     <span class="position-badge">${positionLabels[pos]}</span>
-                    <span>${player.username}${isMe ? ' (you)' : ''}${isBot ? ' 🤖' : ''}</span>
+                    <span>${player.username}${isMe ? ' (you)' : ''}${isBot ? ' 🤖' : ''}${isDisconnected ? ' ⚠️' : ''}</span>
                     ${player.isHost ? '<span class="host-badge">HOST</span>' : ''}
                 </div>
-                <span class="ready-status">${player.ready ? '✅' : '⏳'}</span>
+                <span class="ready-status">${isDisconnected ? '⚠️' : (player.ready ? '✅' : '⏳')}</span>
             `;
         } else {
             slot.innerHTML = `
@@ -296,6 +434,12 @@ function hideError() {
 }
 
 function showConnectionError() {
+    // Only show error if we're NOT reconnecting to an active game
+    if (isReconnecting || (myRoomId && isMultiplayer)) {
+        // Socket.IO will auto-reconnect; show banner instead
+        showReconnectingBanner('Connection lost. Reconnecting...');
+        return;
+    }
     alert('Connection lost. Returning to menu.');
     backToMenu();
 }
@@ -308,6 +452,17 @@ function updateReadyButton() {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+    // Check for saved session — attempt auto-reconnect on page load
+    const savedSession = getSavedSession();
+    if (savedSession.roomId && savedSession.username) {
+        console.log('Found saved session, attempting reconnect...');
+        isMultiplayer = true;
+        myUsername = savedSession.username;
+        showReconnectingBanner('Reconnecting to your game...');
+        connectToServer();
+        // The 'authenticated' handler will trigger reconnection automatically
+    }
+
     // Mode selection
     document.getElementById('btn-solo').addEventListener('click', () => {
         isMultiplayer = false;
@@ -1148,4 +1303,232 @@ function multiplayerPlayCard(player, card) {
     renderPlayerHand('bottom');
     
     return true; // Handled - prevent solo mode logic
+}
+
+// ==========================================================================
+// Reconnection UI Functions
+// ==========================================================================
+
+/**
+ * Show a banner indicating we're reconnecting to the server.
+ */
+function showReconnectingBanner(message) {
+    let banner = document.getElementById('reconnecting-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'reconnecting-banner';
+        banner.className = 'reconnect-banner';
+        document.querySelector('.game-container').appendChild(banner);
+    }
+    banner.innerHTML = `
+        <div class="reconnect-spinner"></div>
+        <span class="reconnect-text">${message}</span>
+    `;
+    banner.classList.add('active');
+}
+
+function hideReconnectingBanner() {
+    const banner = document.getElementById('reconnecting-banner');
+    if (banner) {
+        banner.classList.remove('active');
+    }
+}
+
+/**
+ * Show a banner when another player disconnects, with countdown timer.
+ */
+function showPlayerDisconnectedBanner(username, gracePeriod) {
+    let banner = document.getElementById('player-disconnected-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'player-disconnected-banner';
+        banner.className = 'player-disconnected-banner';
+        document.querySelector('.game-container').appendChild(banner);
+    }
+    
+    const endTime = Date.now() + gracePeriod;
+    
+    function updateCountdown() {
+        const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+        banner.innerHTML = `
+            <span class="disconnect-icon">⏳</span>
+            <span class="disconnect-text">${username} disconnected. Waiting for reconnection... (${remaining}s)</span>
+        `;
+        if (remaining <= 0) {
+            clearInterval(reconnectCountdownInterval);
+            reconnectCountdownInterval = null;
+        }
+    }
+    
+    updateCountdown();
+    if (reconnectCountdownInterval) clearInterval(reconnectCountdownInterval);
+    reconnectCountdownInterval = setInterval(updateCountdown, 1000);
+    
+    banner.classList.add('active');
+}
+
+function hidePlayerDisconnectedBanner() {
+    const banner = document.getElementById('player-disconnected-banner');
+    if (banner) {
+        banner.classList.remove('active');
+    }
+    if (reconnectCountdownInterval) {
+        clearInterval(reconnectCountdownInterval);
+        reconnectCountdownInterval = null;
+    }
+}
+
+/**
+ * Show a brief toast notification for reconnection events.
+ */
+function showReconnectToast(message) {
+    let toast = document.getElementById('reconnect-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'reconnect-toast';
+        toast.className = 'reconnect-toast';
+        document.querySelector('.game-container').appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('active');
+    
+    setTimeout(() => {
+        toast.classList.remove('active');
+    }, 4000);
+}
+
+/**
+ * Handle full game state restoration after reconnecting.
+ * Rebuilds the entire client UI from the server-provided state.
+ */
+function handleGameReconnect(state) {
+    // Close any modals
+    hideLobby();
+    hideRoundOverModal();
+    if (typeof hideGameOverModal === 'function') hideGameOverModal();
+    hidePassModal();
+    
+    // Hide start modal
+    const startModal = document.getElementById('start-modal');
+    if (startModal) startModal.classList.remove('active');
+    
+    // Reset client state flags
+    hasPassed = state.hasPassed || false;
+    pendingReceivedCards = [];
+    hasPlayedCard = false;
+    isHandlingRoundStart = false;
+    currentRoundNumber = state.roundNumber || 0;
+    
+    // Store player names
+    multiplayerNames = state.playerNames || {};
+    updatePlayerLabels();
+    
+    // Restore game state
+    gameState.hands = { bottom: [], left: [], top: [], right: [] };
+    gameState.hands.bottom = state.myHand || [];
+    
+    // Set up other players' hands (face down)
+    if (state.otherPlayers) {
+        for (const op of state.otherPlayers) {
+            gameState.hands[op.position] = [];
+            for (let i = 0; i < op.cardCount; i++) {
+                gameState.hands[op.position].push({ suit: 'back', rank: 'X' });
+            }
+        }
+    }
+    
+    // Restore scores
+    gameState.scores = state.scores || { bottom: 0, left: 0, top: 0, right: 0 };
+    gameState.roundScores = state.roundScores || { bottom: 0, left: 0, top: 0, right: 0 };
+    gameState.hmarLetters = state.hmarLetters || { bottom: '', left: '', top: '', right: '' };
+    gameState.passDirection = state.passDirection;
+    gameState.currentPlayer = state.currentPlayer;
+    gameState.leadSuit = state.leadSuit;
+    gameState.trickNumber = state.trickNumber || 1;
+    
+    // Restore taken cards
+    gameState.takenCards = { bottom: [], left: [], top: [], right: [] };
+    if (state.takenCards || state.allTakenCards) {
+        const taken = state.allTakenCards || state.takenCards;
+        for (const pos of ['bottom', 'left', 'top', 'right']) {
+            gameState.takenCards[pos] = taken[pos] || [];
+        }
+    }
+    
+    // Restore current trick on table
+    gameState.currentTrick = [];
+    
+    // Render everything
+    sortHand('bottom');
+    renderAllHands();
+    clearTable();
+    updateScores();
+    
+    // Put cards from current trick on the table
+    if (state.currentTrick && state.currentTrick.length > 0) {
+        for (const { position, card } of state.currentTrick) {
+            gameState.currentTrick.push({ player: position, card });
+            renderCardOnTable(position, card);
+        }
+    }
+    
+    // Handle the current phase
+    switch (state.phase) {
+        case 'passing':
+            gameState.gamePhase = 'passing';
+            if (!hasPassed) {
+                showPassModal();
+                const targetSide = state.passDirection === 'left' ? 'right' : 'left';
+                updateStatus(`Round ${state.roundNumber}: Select 3 cards to pass ${targetSide}`);
+            } else {
+                gameState.gamePhase = 'waitingForExchange';
+                updateStatus('Waiting for other players to pass cards...');
+            }
+            break;
+            
+        case 'collecting':
+            gameState.gamePhase = 'collecting';
+            if (state.myReceivedCards && state.myReceivedCards.length > 0) {
+                pendingReceivedCards = state.myReceivedCards.map(card => ({
+                    card: card,
+                    revealed: false,
+                    locked: false
+                }));
+                renderPendingReceivedCards();
+                updateStatus('Cards received! Click to reveal and collect them.');
+            } else {
+                socket.emit('cardsCollected');
+                updateStatus('Waiting for other players to collect their cards...');
+            }
+            break;
+            
+        case 'playing':
+            gameState.gamePhase = 'playing';
+            const playerName = getMultiplayerPlayerName(state.currentPlayer);
+            updateStatus(`Trick ${state.trickNumber}: ${playerName}'s turn`);
+            updateCurrentPlayerIndicator();
+            break;
+            
+        case 'trickComplete':
+            gameState.gamePhase = 'playing';
+            updateStatus('Trick complete...');
+            break;
+            
+        case 'roundOver':
+            gameState.gamePhase = 'roundOver';
+            showRoundOverModalMultiplayer(null);
+            break;
+            
+        case 'gameOver':
+            gameState.gamePhase = 'gameOver';
+            break;
+            
+        default:
+            gameState.gamePhase = state.phase;
+            updateStatus('Reconnected. Waiting...');
+            break;
+    }
+    
+    updateCurrentPlayerInfo();
+    renderPlayerHand('bottom');
 }

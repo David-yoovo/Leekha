@@ -1057,8 +1057,23 @@ class GameManager {
         // If it was the bot's turn, make the bot play
         if (game.currentPlayer === position) {
             setTimeout(() => {
-                this.executeBotTurn(roomId, botId);
+                this.executeBotPlay(roomId);
             }, 1000);
+        }
+        
+        // If we're in passing phase, check if the bot needs to pass
+        if (game.phase === 'passing' && game.passedCards[position].length === 0) {
+            this.scheduleBotAction(() => this.executeBotPass(roomId, position), 500);
+        }
+        
+        // If we're in roundOver or gameOver, auto-ready the bot
+        if (game.phase === 'roundOver' || game.phase === 'gameOver') {
+            game.readyForNextRound[position] = true;
+            if (game.phase === 'roundOver') {
+                this.checkAllReadyForNextRound(roomId);
+            } else {
+                this.checkAllReadyForNextGame(roomId);
+            }
         }
 
         // Check if all humans have left
@@ -1068,6 +1083,53 @@ class GameManager {
             this.games.delete(roomId);
             this.roomManager.deleteRoom(roomId);
         }
+    }
+
+    /**
+     * Handle a player reconnecting during an active game.
+     * Swaps the old player ID for the new socket ID in game state.
+     */
+    handlePlayerReconnect(roomId, oldPlayerId, newPlayerId, username) {
+        const game = this.games.get(roomId);
+        if (!game) return;
+
+        const position = game.getPositionByPlayerId(oldPlayerId);
+        if (!position) return;
+
+        const playerData = game.players.get(oldPlayerId);
+        if (!playerData) return;
+
+        // Swap player ID in game state
+        game.players.set(newPlayerId, {
+            ...playerData,
+            isBot: false,
+            isDisconnected: false,
+            username: username || playerData.username
+        });
+        game.players.delete(oldPlayerId);
+
+        console.log(`Game state updated: ${oldPlayerId} -> ${newPlayerId} at position ${position}`);
+    }
+
+    /**
+     * Get full game state for a reconnecting player.
+     * Returns the personalized state needed to rebuild the client UI.
+     */
+    getReconnectState(roomId, playerId) {
+        const game = this.games.get(roomId);
+        if (!game) return null;
+
+        const personalState = this.getPersonalizedState(game, playerId);
+        
+        // Add extra reconnection info
+        return {
+            ...personalState,
+            isReconnect: true,
+            // Include cards on the table (current trick)
+            currentTrickCards: personalState.currentTrick,
+            // Include taken cards for all positions
+            allTakenCards: personalState.takenCards
+        };
     }
 
     // Helper to emit to specific player

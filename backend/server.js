@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const path = require('path');
 const RoomManager = require('./roomManager');
 const GameManager = require('./gameManager');
+const SessionManager = require('./sessionManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -28,14 +29,50 @@ app.use(express.static(path.join(__dirname, '..')));
 // Managers
 const roomManager = new RoomManager();
 const gameManager = new GameManager(io, roomManager);
+const sessionManager = new SessionManager();
+
+// Disconnect timers: userId -> timeout handle
+const disconnectTimers = new Map();
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-    console.log(`Player connected: ${socket.id}`);
+    console.log(`Socket connected: ${socket.id}`);
+
+    // Authenticate / register user with persistent userId
+    socket.on('authenticate', (data) => {
+        const { userId, username } = data || {};
+        const result = sessionManager.registerUser(socket.id, userId, username);
+        
+        socket.userId = result.userId;
+        socket.username = result.username || username || null;
+        
+        // Cancel any pending disconnect timer for this user
+        if (disconnectTimers.has(result.userId)) {
+            clearTimeout(disconnectTimers.get(result.userId));
+            disconnectTimers.delete(result.userId);
+            console.log(`Cancelled disconnect timer for ${result.userId}`);
+        }
+        
+        // Send back the persistent userId
+        socket.emit('authenticated', {
+            userId: result.userId,
+            isReconnect: result.isReconnect,
+            previousRoomId: result.previousRoomId,
+            username: result.username
+        });
+        
+        // If reconnecting to an active game, handle it
+        if (result.isReconnect && result.previousRoomId) {
+            handleReconnect(socket, result.userId, result.previousRoomId);
+        }
+    });
 
     // Player joins with a username
     socket.on('setUsername', (username) => {
         socket.username = username || `Player_${socket.id.slice(0, 4)}`;
+        if (socket.userId) {
+            sessionManager.setUsername(socket.userId, socket.username);
+        }
         socket.emit('usernameSet', { username: socket.username });
         console.log(`Player ${socket.id} set username: ${socket.username}`);
     });
@@ -45,6 +82,9 @@ io.on('connection', (socket) => {
         const room = roomManager.createRoom(socket.id, socket.username);
         socket.join(room.id);
         socket.roomId = room.id;
+        if (socket.userId) {
+            sessionManager.setUserRoom(socket.userId, room.id);
+        }
         socket.emit('roomCreated', { roomId: room.id, room: room.getState() });
         console.log(`Room created: ${room.id} by ${socket.username}`);
     });
@@ -56,6 +96,9 @@ io.on('connection', (socket) => {
         if (result.success) {
             socket.join(roomId);
             socket.roomId = roomId;
+            if (socket.userId) {
+                sessionManager.setUserRoom(socket.userId, roomId);
+            }
             socket.emit('roomJoined', { roomId, room: result.room.getState() });
             
             // Notify all players in room
@@ -71,9 +114,9 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Leave room
+    // Leave room (intentional - no reconnection)
     socket.on('leaveRoom', () => {
-        handleLeaveRoom(socket);
+        handleLeaveRoom(socket, true); // true = intentional leave
     });
 
     // Player ready toggle
@@ -133,18 +176,93 @@ io.on('connection', (socket) => {
         socket.emit('roomList', { rooms });
     });
 
-    // Disconnect handling
+    // Disconnect handling - start grace period instead of immediate removal
     socket.on('disconnect', () => {
-        console.log(`Player disconnected: ${socket.id}`);
-        handleLeaveRoom(socket);
+        console.log(`Socket disconnected: ${socket.id}`);
+        
+        const sessionInfo = sessionManager.handleDisconnect(socket.id);
+        if (!sessionInfo) {
+            // No session found, nothing to do
+            return;
+        }
+        
+        const { userId, roomId, username } = sessionInfo;
+        
+        if (!roomId || !socket.roomId) {
+            // Not in a room, nothing to preserve
+            return;
+        }
+        
+        const room = roomManager.getRoom(roomId);
+        if (!room) return;
+        
+        room.updateActivity();
+        
+        if (room.gameInProgress) {
+            // Game is active — start grace period for reconnection
+            console.log(`Player ${username} (${userId}) disconnected during game in room ${roomId}. Starting ${sessionManager.RECONNECT_GRACE_PERIOD / 1000}s grace period...`);
+            
+            // Mark player as disconnected in room (but don't remove)
+            room.markPlayerDisconnected(socket.id, userId);
+            
+            // Notify remaining players about pending reconnection
+            io.to(roomId).emit('playerDisconnectedTemporary', {
+                playerId: socket.id,
+                username: username,
+                message: `${username} disconnected. Waiting for reconnection...`,
+                gracePeriod: sessionManager.RECONNECT_GRACE_PERIOD
+            });
+            
+            // Start grace period timer
+            const timer = setTimeout(() => {
+                disconnectTimers.delete(userId);
+                console.log(`Grace period expired for ${username} (${userId}) in room ${roomId}`);
+                
+                // Player didn't reconnect in time — replace with bot
+                const currentRoom = roomManager.getRoom(roomId);
+                if (currentRoom && currentRoom.gameInProgress) {
+                    // Find the player's current socketId in room (it was stored before disconnect)
+                    const disconnectedPlayerId = currentRoom.getDisconnectedPlayerId(userId);
+                    if (disconnectedPlayerId) {
+                        currentRoom.finalizePlayerRemoval(disconnectedPlayerId);
+                        gameManager.handlePlayerDisconnect(roomId, disconnectedPlayerId);
+                        
+                        io.to(roomId).emit('playerReconnectExpired', {
+                            username: username,
+                            message: `${username} didn't reconnect in time. Replaced by bot.`,
+                            room: currentRoom.getState()
+                        });
+                    }
+                }
+                
+                sessionManager.clearUserRoom(userId);
+            }, sessionManager.RECONNECT_GRACE_PERIOD);
+            
+            disconnectTimers.set(userId, timer);
+        } else {
+            // Not in a game — leave normally
+            roomManager.leaveRoom(roomId, socket.id);
+            
+            io.to(roomId).emit('playerLeft', {
+                playerId: socket.id,
+                username: username,
+                room: room.getState()
+            });
+            
+            sessionManager.clearUserRoom(userId);
+        }
     });
 
-    // Helper function to handle leaving room
-    function handleLeaveRoom(socket) {
+    // Handle intentional room leave
+    function handleLeaveRoom(socket, intentional = false) {
         if (socket.roomId) {
             const room = roomManager.getRoom(socket.roomId);
             if (room) {
-                room.updateActivity(); // Update activity timestamp
+                room.updateActivity();
+                
+                // Clear any disconnected state for this player
+                room.clearDisconnectedState(socket.id);
+                
                 roomManager.leaveRoom(socket.roomId, socket.id);
                 socket.leave(socket.roomId);
                 
@@ -155,16 +273,83 @@ io.on('connection', (socket) => {
                     room: room.getState()
                 });
                 
-                // Handle mid-game disconnect - replace with bot
+                // Handle mid-game disconnect - replace with bot immediately for intentional leave
                 if (room.gameInProgress) {
                     gameManager.handlePlayerDisconnect(socket.roomId, socket.id);
                 }
-                
-                // Don't delete room immediately - let cleanup timer handle it
-                // This allows the game to continue with bots
             }
+            
+            // Clear session room assignment
+            if (socket.userId) {
+                // Cancel any pending disconnect timer
+                if (disconnectTimers.has(socket.userId)) {
+                    clearTimeout(disconnectTimers.get(socket.userId));
+                    disconnectTimers.delete(socket.userId);
+                }
+                sessionManager.clearUserRoom(socket.userId);
+            }
+            
             socket.roomId = null;
         }
+    }
+
+    // Handle reconnection to an active game
+    function handleReconnect(socket, userId, roomId) {
+        const room = roomManager.getRoom(roomId);
+        if (!room) {
+            console.log(`Reconnect failed: room ${roomId} no longer exists`);
+            sessionManager.clearUserRoom(userId);
+            socket.emit('reconnectFailed', { message: 'Room no longer exists.' });
+            return;
+        }
+        
+        if (!room.gameInProgress) {
+            console.log(`Reconnect: game not in progress in room ${roomId}`);
+            sessionManager.clearUserRoom(userId);
+            socket.emit('reconnectFailed', { message: 'Game is no longer in progress.' });
+            return;
+        }
+        
+        // Find the disconnected player's position
+        const reconnectInfo = room.reconnectPlayer(userId, socket.id, socket.username);
+        if (!reconnectInfo) {
+            console.log(`Reconnect failed: could not find player slot in room ${roomId}`);
+            sessionManager.clearUserRoom(userId);
+            socket.emit('reconnectFailed', { message: 'Your spot has been taken.' });
+            return;
+        }
+        
+        const { oldPlayerId, position } = reconnectInfo;
+        
+        // Join the socket room
+        socket.join(roomId);
+        socket.roomId = roomId;
+        socket.username = reconnectInfo.username || socket.username;
+        
+        // Update game state: swap old player ID for new socket ID
+        gameManager.handlePlayerReconnect(roomId, oldPlayerId, socket.id, socket.username);
+        
+        console.log(`Player ${socket.username} (${userId}) reconnected to room ${roomId} at position ${position}`);
+        
+        // Send full game state to reconnected player
+        const personalState = gameManager.getReconnectState(roomId, socket.id);
+        if (personalState) {
+            socket.emit('reconnected', {
+                roomId: roomId,
+                position: position,
+                state: personalState,
+                message: 'Reconnected to your game!'
+            });
+        }
+        
+        // Notify other players about reconnection
+        io.to(roomId).emit('playerReconnected', {
+            playerId: socket.id,
+            username: socket.username,
+            position: position,
+            message: `${socket.username} has reconnected!`,
+            room: room.getState()
+        });
     }
 });
 

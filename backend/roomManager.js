@@ -12,6 +12,9 @@ class Room {
         this.createdAt = Date.now();
         this.lastActivity = Date.now(); // Track last activity for session cleanup
         
+        // Disconnected players tracking: playerId -> { userId, username, position, disconnectedAt }
+        this.disconnectedPlayers = new Map();
+        
         // Add host as first player (bottom position)
         this.addPlayer(hostId, hostUsername, false);
         
@@ -177,7 +180,8 @@ class Room {
                 ready: data.ready,
                 position: data.position,
                 isHost: id === this.hostId,
-                isBot: data.isBot || false
+                isBot: data.isBot || false,
+                isDisconnected: data.isDisconnected || false
             });
         }
         
@@ -189,7 +193,8 @@ class Room {
             humanCount: this.getHumanCount(),
             maxPlayers: this.maxPlayers,
             gameInProgress: this.gameInProgress,
-            canStart: this.canStart()
+            canStart: this.canStart(),
+            disconnectedPlayers: this.getDisconnectedPlayersInfo()
         };
     }
 
@@ -205,6 +210,137 @@ class Room {
     getPlayerPosition(playerId) {
         const player = this.players.get(playerId);
         return player ? player.position : null;
+    }
+
+    /**
+     * Mark a player as disconnected (but keep their slot — don't replace with bot yet).
+     * Stores userId for reconnection matching.
+     */
+    markPlayerDisconnected(playerId, userId) {
+        const player = this.players.get(playerId);
+        if (!player || player.isBot) return;
+        
+        this.disconnectedPlayers.set(playerId, {
+            playerId,
+            userId: userId || null,
+            username: player.username,
+            position: player.position,
+            disconnectedAt: Date.now()
+        });
+        
+        // Mark the player as disconnected in-place (don't remove)
+        player.isDisconnected = true;
+    }
+
+    /**
+     * Clear disconnected state for a player (intentional leave).
+     */
+    clearDisconnectedState(playerId) {
+        this.disconnectedPlayers.delete(playerId);
+        const player = this.players.get(playerId);
+        if (player) {
+            player.isDisconnected = false;
+        }
+    }
+
+    /**
+     * Get the disconnected player's socket ID by userId.
+     */
+    getDisconnectedPlayerId(userId) {
+        for (const [playerId, info] of this.disconnectedPlayers) {
+            if (info.userId === userId) {
+                return playerId;
+            }
+        }
+        // Fallback: return first disconnected player if only one
+        if (this.disconnectedPlayers.size === 1) {
+            return this.disconnectedPlayers.keys().next().value;
+        }
+        return null;
+    }
+
+    /**
+     * Finalize removal of a disconnected player — actually replace with bot.
+     */
+    finalizePlayerRemoval(playerId) {
+        this.disconnectedPlayers.delete(playerId);
+        // Now do the normal removePlayer logic
+        this.removePlayer(playerId);
+    }
+
+    /**
+     * Reconnect a player: find their disconnected slot by userId and assign new socket ID.
+     * Returns { oldPlayerId, position, username } or null if failed.
+     */
+    reconnectPlayer(userId, newSocketId, username) {
+        // Find the disconnected player entry by userId
+        let targetPlayerId = null;
+        let targetInfo = null;
+        
+        for (const [playerId, info] of this.disconnectedPlayers) {
+            if (info.userId === userId) {
+                targetPlayerId = playerId;
+                targetInfo = info;
+                break;
+            }
+        }
+
+        // Fallback: if only one disconnected player, use them
+        if (!targetPlayerId && this.disconnectedPlayers.size === 1) {
+            const entry = this.disconnectedPlayers.entries().next().value;
+            targetPlayerId = entry[0];
+            targetInfo = entry[1];
+        }
+        
+        if (!targetPlayerId || !targetInfo) {
+            return null;
+        }
+        
+        const position = targetInfo.position;
+        const oldUsername = targetInfo.username;
+        
+        // Remove disconnected entry
+        this.disconnectedPlayers.delete(targetPlayerId);
+        
+        // Get the player data
+        const playerData = this.players.get(targetPlayerId);
+        if (!playerData) return null;
+        
+        // Remove old entry and create new one with new socket ID
+        this.players.delete(targetPlayerId);
+        this.players.set(newSocketId, {
+            username: oldUsername || username,
+            ready: playerData.ready,
+            position: position,
+            isBot: false,
+            isDisconnected: false
+        });
+        
+        // Update host if needed
+        if (this.hostId === targetPlayerId) {
+            this.hostId = newSocketId;
+        }
+        
+        return {
+            oldPlayerId: targetPlayerId,
+            position,
+            username: oldUsername || username
+        };
+    }
+
+    /**
+     * Get state including disconnected player info.
+     */
+    getDisconnectedPlayersInfo() {
+        const disconnected = [];
+        for (const [playerId, info] of this.disconnectedPlayers) {
+            disconnected.push({
+                username: info.username,
+                position: info.position,
+                disconnectedAt: info.disconnectedAt
+            });
+        }
+        return disconnected;
     }
 }
 

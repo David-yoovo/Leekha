@@ -1706,3 +1706,107 @@ body {
     gap: 8px;
   }
 }
+
+/* ==========================================================================
+   Reconnection UI
+   ========================================================================== */
+
+/* Reconnecting banner (shown to the disconnected player) */
+.reconnect-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    z-index: 10000;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    animation: bannerSlideDown 0.3s ease-out;
+}
+
+.reconnect-banner.active {
+    display: flex;
+}
+
+.reconnect-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes bannerSlideDown {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+
+/* Player disconnected banner (shown to remaining players) */
+.player-disconnected-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #8e44ad, #6c3483);
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    z-index: 10000;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    animation: bannerSlideDown 0.3s ease-out;
+}
+
+.player-disconnected-banner.active {
+    display: flex;
+}
+
+.disconnect-icon {
+    font-size: 1.3rem;
+}
+
+/* Toast notification for reconnection events */
+.reconnect-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    padding: 12px 24px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #2ecc71;
+    border: 1px solid #2ecc71;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.4s ease;
+    white-space: nowrap;
+    max-width: 90vw;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.reconnect-toast.active {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
